@@ -11,12 +11,12 @@ fn main() {
     let mut cpu = Cpu::init();
     cpu.load_code("/home/gg/Desktop/emulator/pp");
 
-    cpu.mem.seek_to(cpu.code_addr(0) as u64);
+    cpu.mem.seek_to(cpu.code_addr(cpu.regs.ip) as u64);
 
     //cpu.regs.set_ax(110);
 
     while let Some(i) = cpu.fetch() {
-        println!("{:?}", i);
+        println!("[{}] {:?}",cpu.regs.ip, i);
         cpu.execute(&i);
     }
 

@@ -177,6 +177,7 @@ pub struct Registers {
     pub cs: u32,
     pub ss: u32,
     pub flags: Flags,
+    pub ip: u16
 }
 
 macro_rules! getsetreg {
@@ -295,6 +296,7 @@ impl Registers {
 impl Default for Registers {
     fn default() -> Self {
         Self {
+            ip: Default::default(),
             ax: Default::default(),
             bx: Default::default(),
             cx: Default::default(),

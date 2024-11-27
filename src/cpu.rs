@@ -26,6 +26,13 @@ pub enum Opcode {
     PushEs,
     PopEs,
     Or,
+    PushCs,
+    Adc,
+    PushSs,
+    PopSs,
+    Sbb,
+    PushDs,
+    PopDs
 }
 
 #[derive(Debug)]
@@ -163,6 +170,7 @@ impl Cpu {
         if let Some(ov) = &self.seg_override {
             let res = self.ea(ov, offt);
             self.seg_override = None;
+            unimplemented!("segment override");
             res
         } else {
             self.ea(&seg, offt)
@@ -489,16 +497,20 @@ impl Cpu {
     }
 
     pub fn fetch(&mut self) -> Option<Instruction> {
-        if self.mem.pos() >= self.prog_size {
+        self.mem.seek_to(self.code_addr(self.regs.ip) as u64);
+        let old_pos = self.mem.pos();
+        if self.regs.ip as u64 >= self.prog_size {
             return None;
         }
 
         let mut result = (Operand::Mem16(0), Operand::Mem16(0));
         let b1 = Byte1::new(self.mem.read_u8());
 
-        match b1.opcode() {
+        let mut b2 = Byte2::new(0);
+
+        let res = match b1.opcode() {
             0 => {
-                let b2 = Byte2::new(self.mem.read_u8());
+                b2 = Byte2::new(self.mem.read_u8());
 
                 if (b1.reg_is_dest()) {
                     result.0 = match b1.word() {
@@ -557,8 +569,65 @@ impl Cpu {
                 }),
                 _ => unreachable!(),
             },
+            2 => {
+                b2 = Byte2::new(self.mem.read_u8());
+
+                if (b1.reg_is_dest()) {
+                    result.0 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.1 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    }
+                } else {
+                    result.1 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.0 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    };
+                }
+
+                Some(Instruction {
+                    opcode: Opcode::Or,
+                    dest: result.0,
+                    src: result.1,
+                })
+            }
+            3 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Or,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Or,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::PushCs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
             _ => unreachable!(),
-        }
+        };
+        self.regs.ip = self.regs.ip.wrapping_add((self.mem.pos() - old_pos) as u16);
+        res
     }
 
     fn operand_value(&mut self, op: Operand) -> u16 {
@@ -603,7 +672,7 @@ impl Cpu {
         res
     }
 
-    fn read_mem_u8(&mut self, pos: u32, val: u8) -> u8 {
+    fn read_mem_u8(&mut self, pos: u32) -> u8 {
         let p = self.mem.pos();
         self.mem.seek_to(pos as u64);
         let res = self.mem.read_u8();
@@ -635,14 +704,110 @@ impl Cpu {
         (a & 0b1111) < (b & 0b1111)
     }
 
-    fn add(&mut self, d: Operand, s: Operand) {
-        self.regs.flags.clear_arith();
-
+    fn sub(&mut self, d: Operand, s: Operand, sbb: bool) {
+        
         let dest = self.operand_value(d);
         let src = self.operand_value(s);
 
-        let result = dest.wrapping_add(src);
+        let mut result = dest.wrapping_sub(src);
 
+        if sbb {
+            if(self.regs.flags.cf()) {
+                result = result.wrapping_sub(1);
+            }
+        }
+
+        self.regs.flags.clear_arith();
+
+        if (Self::aux_sub(dest, src)) {
+            self.regs.flags.set_af();
+        }
+
+        if Self::even_parity(result as u8) {
+            self.regs.flags.set_pf();
+        }
+
+        if result == 0 {
+            self.regs.flags.set_zf();
+        }
+
+        match d {
+            Operand::Mem16(p) => {
+                if (dest as i16).overflowing_sub(src as i16).1 {
+                    self.regs.flags.set_of();
+                }
+
+                if (dest as u16).overflowing_sub(src as u16).1 {
+                    self.regs.flags.set_cf();
+                }
+
+                if result & !0b01111111_11111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+
+                self.write_mem_u16(p, result)
+            }
+            Operand::Mem8(p) => {
+                if (dest as i8).overflowing_sub(src as i8).1 {
+                    self.regs.flags.set_of();
+                }
+
+                if (dest as u8).overflowing_sub(src as u8).1 {
+                    self.regs.flags.set_cf();
+                }
+
+                if result & !0b01111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+
+                self.write_mem_u8(p, result as u8)
+            }
+            Operand::Reg8(r) => {
+                if (dest as i8).overflowing_sub(src as i8).1 {
+                    self.regs.flags.set_of();
+                }
+
+                if (dest as u8).overflowing_sub(src as u8).1 {
+                    self.regs.flags.set_cf();
+                }
+
+                if result & !0b01111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+                self.set_reg(r, false, result)
+            }
+            Operand::Reg16(r) => {
+                if (dest as i16).overflowing_sub(src as i16).1 {
+                    self.regs.flags.set_of();
+                }
+
+                if (dest as u16).overflowing_sub(src as u16).1 {
+                    self.regs.flags.set_cf();
+                }
+
+                if result & !0b01111111_11111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+                self.set_reg(r, true, result)
+            }
+            _ => unreachable!("Immediate destination"),
+        }
+    }
+    
+    fn add(&mut self, d: Operand, s: Operand, adc: bool) {
+        
+        let dest = self.operand_value(d);
+        let src = self.operand_value(s);
+        
+        let mut result = dest.wrapping_add(src);
+
+        if adc {
+            if(self.regs.flags.cf()) {
+                result = result.wrapping_add(1);
+            }
+        }
+        self.regs.flags.clear_arith();
+        
         if (Self::aux_add(dest, src)) {
             self.regs.flags.set_af();
         }
@@ -718,9 +883,9 @@ impl Cpu {
         }
     }
 
-    pub fn or(&mut self,d: Operand, s: Operand) {
+    pub fn or(&mut self, d: Operand, s: Operand) {
         self.regs.flags.clear_arith();
-
+        
         let dest = self.operand_value(d);
         let src = self.operand_value(s);
 
@@ -736,7 +901,6 @@ impl Cpu {
 
         match d {
             Operand::Mem16(p) => {
-
                 if result & !0b01111111_11111111 > 0 {
                     self.regs.flags.set_sf();
                 }
@@ -769,15 +933,36 @@ impl Cpu {
     pub fn execute(&mut self, inst: &Instruction) {
         match inst.opcode {
             Opcode::Or => self.or(inst.dest, inst.src),
-            Opcode::Add => self.add(inst.dest, inst.src),
+            Opcode::Add => self.add(inst.dest, inst.src, false),
+            Opcode::Adc => self.add(inst.dest, inst.src, true),
+            Opcode::Sbb => self.sub(inst.dest, inst.src, true),
             Opcode::PushEs => {
-                self.regs.sp.wrapping_sub(2);
+                self.regs.sp = self.regs.sp.wrapping_sub(2);
                 self.write_mem_u16(self.stack_addr(self.regs.sp), self.regs.es as u16);
-            }
+            },
+            Opcode::PushCs => {
+                self.regs.sp = self.regs.sp.wrapping_sub(2);
+                self.write_mem_u16(self.stack_addr(self.regs.sp), self.regs.cs as u16);
+            },
             Opcode::PopEs => {
-                let es = self.read_mem_u16(self.stack_addr(self.regs.sp));
-                self.regs.sp.wrapping_add(2);
-                self.regs.es = es as u32;
+                self.regs.es = self.read_mem_u16(self.stack_addr(self.regs.sp)) as u32;
+                self.regs.sp = self.regs.sp.wrapping_add(2);
+            },
+            Opcode::PushSs => {
+                self.regs.sp = self.regs.sp.wrapping_sub(2);
+                self.write_mem_u16(self.stack_addr(self.regs.sp), self.regs.ss as u16);
+            },
+            Opcode::PopSs => {
+                self.regs.ss = self.read_mem_u16(self.stack_addr(self.regs.sp)) as u32;
+                self.regs.sp = self.regs.sp.wrapping_add(2);
+            },
+            Opcode::PushDs => {
+                self.regs.sp = self.regs.sp.wrapping_sub(2);
+                self.write_mem_u16(self.stack_addr(self.regs.sp), self.regs.ds as u16);
+            },
+            Opcode::PopDs => {
+                self.regs.ds = self.read_mem_u16(self.stack_addr(self.regs.sp)) as u32;
+                self.regs.sp = self.regs.sp.wrapping_add(2);
             }
             _ => unimplemented!(),
         }
@@ -834,6 +1019,89 @@ mod cpu_test {
         cpu::{self, Opcode, Operand},
         mem::Byte1,
     };
+
+    #[test]
+    fn push_pop_ds(){
+        let mut cpu = Cpu::init();
+        cpu.mem.seek_to(cpu.code_addr(0) as u64);
+        cpu.regs.set_cs(0);
+        cpu.regs.set_ds(0);
+        cpu.regs.set_ss(4096);
+        cpu.regs.set_es(32);
+        cpu.regs.sp = 64;
+        cpu.regs.ds = 128;
+        cpu.execute(&Instruction {
+            opcode: Opcode::PushDs,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+        assert_eq!(cpu.regs.sp, 62);
+        assert_eq!(cpu.read_mem_u16(cpu.stack_addr(cpu.regs.sp)), 128);
+        cpu.write_mem_u16(cpu.stack_addr(cpu.regs.sp), 64);
+        let sp = cpu.regs.sp;
+        cpu.execute(&Instruction {
+            opcode: Opcode::PopDs,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+        assert_eq!(cpu.regs.ds, 64);
+        assert_eq!(cpu.regs.sp - sp, 2);
+}
+
+
+    #[test]
+    fn sbb() {
+        let mut cpu = Cpu::init();
+        cpu.mem.seek_to(cpu.code_addr(0) as u64);
+        cpu.regs.set_ss(4096);
+
+        cpu.regs.flags.set_cf();
+        assert!(cpu.regs.flags.cf());
+
+        cpu.execute(&Instruction {
+            opcode: Opcode::Sbb,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+
+        assert_eq!(cpu.regs.ax as i8, -1);
+
+    }
+
+    #[test]
+    fn push_pop_ss(){
+            let mut cpu = Cpu::init();
+            cpu.mem.seek_to(cpu.code_addr(0) as u64);
+            cpu.regs.set_cs(0);
+            cpu.regs.set_ds(0);
+            cpu.regs.set_ss(4096);
+            cpu.regs.set_es(32);
+            cpu.regs.sp = 64;
+            cpu.regs.ss = 128;
+            cpu.execute(&Instruction {
+                opcode: Opcode::PushSs,
+                dest: Operand::Reg8(0),
+                src: Operand::Reg8(0),
+            });
+            assert_eq!(cpu.regs.sp, 62);
+            assert_eq!(cpu.read_mem_u16(cpu.stack_addr(cpu.regs.sp)), 128);
+            cpu.write_mem_u16(cpu.stack_addr(cpu.regs.sp), 64);
+            let sp = cpu.regs.sp;
+            cpu.execute(&Instruction {
+                opcode: Opcode::PopSs,
+                dest: Operand::Reg8(0),
+                src: Operand::Reg8(0),
+            });
+            assert_eq!(cpu.regs.ss, 64);
+            assert_eq!(cpu.regs.sp - sp, 2);
+    }
+
+    #[test] 
+    fn wa() {
+        let mut a:i32 = 90;
+        a = a.wrapping_add(1);
+        assert!(a == 91);
+    }
 
     #[test]
     #[should_panic]
@@ -1020,30 +1288,34 @@ mod cpu_test {
         cpu.regs.set_ds(0);
         cpu.regs.set_ss(4096);
         cpu.regs.set_es(32);
+        cpu.regs.sp = 64;
         cpu.execute(&Instruction {
             opcode: Opcode::PushEs,
             dest: Operand::Reg8(0),
             src: Operand::Reg8(0),
         });
+        assert_eq!(cpu.regs.sp, 62);
         assert_eq!(cpu.read_mem_u16(cpu.stack_addr(cpu.regs.sp)), 2);
         cpu.write_mem_u16(cpu.stack_addr(cpu.regs.sp), 64);
+        let sp = cpu.regs.sp;
         cpu.execute(&Instruction {
             opcode: Opcode::PopEs,
             dest: Operand::Reg8(0),
             src: Operand::Reg8(0),
         });
         assert_eq!(cpu.regs.es, 64);
+        assert_eq!(cpu.regs.sp - sp, 2);
     }
 
-    #[test] 
+    #[test]
     fn or() {
         let mut cpu = Cpu::init();
         cpu.regs.ax = 0b11;
         cpu.regs.cx = 0b1100;
-        cpu.execute(&Instruction{
+        cpu.execute(&Instruction {
             opcode: Opcode::Or,
             dest: Operand::Reg8(0),
-            src: Operand::Reg8(1)
+            src: Operand::Reg8(1),
         });
 
         assert_eq!(cpu.regs.ax, 0b1111);
@@ -1052,14 +1324,54 @@ mod cpu_test {
 
         cpu.regs.ax = 0b00;
         cpu.regs.cx = 0b00;
-        cpu.execute(&Instruction{
+        cpu.execute(&Instruction {
             opcode: Opcode::Or,
             dest: Operand::Reg8(0),
-            src: Operand::Reg8(1)
+            src: Operand::Reg8(1),
         });
 
         assert_eq!(cpu.regs.ax, 0b0);
         assert!(cpu.regs.flags.pf());
         assert!(cpu.regs.flags.zf());
+    }
+
+    #[test]
+    fn push_cs() {
+        let mut cpu = Cpu::init();
+        cpu.mem.seek_to(cpu.code_addr(0) as u64);
+        cpu.regs.set_ss(4096);
+        cpu.regs.cs = 90;
+        cpu.execute(&Instruction {
+            opcode: Opcode::PushCs,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+
+        assert_eq!(cpu.read_mem_u16(cpu.stack_addr(cpu.regs.sp)), 90);
+    }
+
+    #[test]
+    fn adc() {
+        let mut cpu = Cpu::init();
+        cpu.mem.seek_to(cpu.code_addr(0) as u64);
+        cpu.regs.set_ss(4096);
+        //cpu.regs.cs = 90;
+        cpu.regs.ax = 255;
+        cpu.execute(&Instruction {
+            opcode: Opcode::Add,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+
+        cpu.regs.ax = 0;
+
+        cpu.execute(&Instruction {
+            opcode: Opcode::Adc,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+
+        assert_eq!(cpu.regs.ax, 1);
+
     }
 }
