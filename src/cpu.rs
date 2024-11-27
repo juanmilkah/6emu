@@ -25,6 +25,7 @@ pub enum Opcode {
     Add,
     PushEs,
     PopEs,
+    Or,
 }
 
 #[derive(Debug)]
@@ -717,8 +718,57 @@ impl Cpu {
         }
     }
 
+    pub fn or(&mut self,d: Operand, s: Operand) {
+        self.regs.flags.clear_arith();
+
+        let dest = self.operand_value(d);
+        let src = self.operand_value(s);
+
+        let result = dest | src;
+
+        if Self::even_parity(result as u8) {
+            self.regs.flags.set_pf();
+        }
+
+        if result == 0 {
+            self.regs.flags.set_zf();
+        }
+
+        match d {
+            Operand::Mem16(p) => {
+
+                if result & !0b01111111_11111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+
+                self.write_mem_u16(p, result)
+            }
+            Operand::Mem8(p) => {
+                if result & !0b01111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+
+                self.write_mem_u8(p, result as u8)
+            }
+            Operand::Reg8(r) => {
+                if result & !0b01111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+                self.set_reg(r, false, result)
+            }
+            Operand::Reg16(r) => {
+                if result & !0b01111111_11111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+                self.set_reg(r, true, result)
+            }
+            _ => unreachable!("Immediate destination"),
+        }
+    }
+
     pub fn execute(&mut self, inst: &Instruction) {
         match inst.opcode {
+            Opcode::Or => self.or(inst.dest, inst.src),
             Opcode::Add => self.add(inst.dest, inst.src),
             Opcode::PushEs => {
                 self.regs.sp.wrapping_sub(2);
@@ -983,5 +1033,33 @@ mod cpu_test {
             src: Operand::Reg8(0),
         });
         assert_eq!(cpu.regs.es, 64);
+    }
+
+    #[test] 
+    fn or() {
+        let mut cpu = Cpu::init();
+        cpu.regs.ax = 0b11;
+        cpu.regs.cx = 0b1100;
+        cpu.execute(&Instruction{
+            opcode: Opcode::Or,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(1)
+        });
+
+        assert_eq!(cpu.regs.ax, 0b1111);
+        assert!(cpu.regs.flags.pf());
+        assert!(!cpu.regs.flags.zf());
+
+        cpu.regs.ax = 0b00;
+        cpu.regs.cx = 0b00;
+        cpu.execute(&Instruction{
+            opcode: Opcode::Or,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(1)
+        });
+
+        assert_eq!(cpu.regs.ax, 0b0);
+        assert!(cpu.regs.flags.pf());
+        assert!(cpu.regs.flags.zf());
     }
 }
