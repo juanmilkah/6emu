@@ -1,5 +1,8 @@
 use std::{
-    fs::File, io::{BufReader, Cursor, Read, Seek, SeekFrom}, ops::{Add, Deref}, u8::{self, MAX}
+    fs::File,
+    io::{BufReader, Cursor, Read, Seek, SeekFrom},
+    ops::{Add, Deref},
+    u8::{self, MAX},
 };
 
 use crate::{
@@ -14,14 +17,14 @@ pub enum Operand {
     Reg8(u8),
     Reg16(u8),
     Imm8(u8),
-    Imm16(u16)
+    Imm16(u16),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Opcode {
     Add,
     PushEs,
-    PopEs
+    PopEs,
 }
 
 #[derive(Debug)]
@@ -31,8 +34,11 @@ pub struct Instruction {
     src: Operand,
 }
 
-pub enum Segment{
-    Ds, Es, Ss, Cs
+pub enum Segment {
+    Ds,
+    Es,
+    Ss,
+    Cs,
 }
 
 impl Instruction {
@@ -49,7 +55,7 @@ pub struct Cpu {
     pub regs: Registers,
     pub mem: Mem,
     pub prog_size: u64,
-    pub seg_override: Option<Segment>
+    pub seg_override: Option<Segment>,
 }
 
 impl Cpu {
@@ -58,12 +64,12 @@ impl Cpu {
             prog_size: 0,
             regs: Registers::default(),
             mem: Mem::new(),
-            seg_override: None
+            seg_override: None,
         };
         cpu.regs.set_cs(0);
         cpu.regs.set_ds(4096);
         cpu.regs.set_ss(8192);
-        cpu.regs.set_es(8192+4096);
+        cpu.regs.set_es(8192 + 4096);
         cpu
     }
 
@@ -143,7 +149,7 @@ impl Cpu {
         };
     }
 
-    pub fn ea(&self, seg: &Segment, offt:u32) -> u32 {
+    pub fn ea(&self, seg: &Segment, offt: u32) -> u32 {
         match seg {
             Segment::Ds => self.regs.get_ds() + offt,
             Segment::Es => self.regs.get_es() + offt,
@@ -167,61 +173,96 @@ impl Cpu {
             0 => match b2.rm() {
                 0 => {
                     if b1.word() {
-                        Operand::Mem16(
-                            self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_si()) as u32))
+                        Operand::Mem16(self.get_segment_offset(
+                            Segment::Ds,
+                            (self.regs.get_bx() + self.regs.get_si()) as u32,
+                        ))
                     } else {
-                        Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_si()) as u32)
-                    )}
+                        Operand::Mem8(self.get_segment_offset(
+                            Segment::Ds,
+                            (self.regs.get_bx() + self.regs.get_si()) as u32,
+                        ))
+                    }
                 }
                 1 => {
                     if b1.word() {
-                        Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_di()) as u32)
-                    )} else {
-                        Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_di()) as u32)
-                    )}
+                        Operand::Mem16(self.get_segment_offset(
+                            Segment::Ds,
+                            (self.regs.get_bx() + self.regs.get_di()) as u32,
+                        ))
+                    } else {
+                        Operand::Mem8(self.get_segment_offset(
+                            Segment::Ds,
+                            (self.regs.get_bx() + self.regs.get_di()) as u32,
+                        ))
+                    }
                 }
                 2 => {
                     if b1.word() {
-                        Operand::Mem16(self.get_segment_offset( Segment::Ss, (self.regs.get_bp() + self.regs.get_si()) as u32)
-                    )} else {
-                        Operand::Mem8(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + self.regs.get_si()) as u32)
-                    )}
+                        Operand::Mem16(self.get_segment_offset(
+                            Segment::Ss,
+                            (self.regs.get_bp() + self.regs.get_si()) as u32,
+                        ))
+                    } else {
+                        Operand::Mem8(self.get_segment_offset(
+                            Segment::Ss,
+                            (self.regs.get_bp() + self.regs.get_si()) as u32,
+                        ))
+                    }
                 }
                 3 => {
                     if b1.word() {
-                        Operand::Mem16(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + self.regs.get_di()) as u32)
-                    )} else {
-                        Operand::Mem8(self.get_segment_offset(Segment::Ss,(self.regs.get_bp() + self.regs.get_di()) as u32)
-                    )}
+                        Operand::Mem16(self.get_segment_offset(
+                            Segment::Ss,
+                            (self.regs.get_bp() + self.regs.get_di()) as u32,
+                        ))
+                    } else {
+                        Operand::Mem8(self.get_segment_offset(
+                            Segment::Ss,
+                            (self.regs.get_bp() + self.regs.get_di()) as u32,
+                        ))
+                    }
                 }
                 4 => {
                     if b1.word() {
-                        Operand::Mem16(self.get_segment_offset(Segment::Ds,(self.regs.get_si()) as u32 )
-                    )} else {
-                        Operand::Mem8(self.get_segment_offset(Segment::Ds,(self.regs.get_si()) as u32)
-                    )}
+                        Operand::Mem16(
+                            self.get_segment_offset(Segment::Ds, (self.regs.get_si()) as u32),
+                        )
+                    } else {
+                        Operand::Mem8(
+                            self.get_segment_offset(Segment::Ds, (self.regs.get_si()) as u32),
+                        )
+                    }
                 }
                 5 => {
                     if b1.word() {
-                        Operand::Mem16(self.get_segment_offset(Segment::Ds,(self.regs.get_di()) as u32)
-                    )} else {
-                        Operand::Mem8(self.get_segment_offset(Segment::Ds,(self.regs.get_di()) as u32)
-                    )}
+                        Operand::Mem16(
+                            self.get_segment_offset(Segment::Ds, (self.regs.get_di()) as u32),
+                        )
+                    } else {
+                        Operand::Mem8(
+                            self.get_segment_offset(Segment::Ds, (self.regs.get_di()) as u32),
+                        )
+                    }
                 }
                 6 => {
-                    let offt= self.mem.read_u16() as u32;
+                    let offt = self.mem.read_u16() as u32;
                     if b1.word() {
-                        Operand::Mem16(self.get_segment_offset(Segment::Ds, offt)
-                    )} else {
-                        Operand::Mem8(self.get_segment_offset(Segment::Ds,offt)
-                    )}
+                        Operand::Mem16(self.get_segment_offset(Segment::Ds, offt))
+                    } else {
+                        Operand::Mem8(self.get_segment_offset(Segment::Ds, offt))
+                    }
                 }
                 7 => {
                     if b1.word() {
-                        Operand::Mem16(self.get_segment_offset(Segment::Ds,(self.regs.get_bx()) as u32)
-                    )} else {
-                        Operand::Mem8(self.get_segment_offset(Segment::Ds,(self.regs.get_bx()) as u32)
-                    )}
+                        Operand::Mem16(
+                            self.get_segment_offset(Segment::Ds, (self.regs.get_bx()) as u32),
+                        )
+                    } else {
+                        Operand::Mem8(
+                            self.get_segment_offset(Segment::Ds, (self.regs.get_bx()) as u32),
+                        )
+                    }
                 }
                 8..=u8::MAX => unreachable!(),
             },
@@ -230,59 +271,107 @@ impl Cpu {
                 let res = match b2.rm() {
                     0 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_si() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_si() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + self.regs.get_si() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + self.regs.get_si() + disp) as u32,
+                            ))
+                        }
                     }
                     1 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_di() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_di() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + self.regs.get_di() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + self.regs.get_di() + disp) as u32,
+                            ))
+                        }
                     }
                     2 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + self.regs.get_si() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + self.regs.get_si() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ss,
+                                (self.regs.get_bp() + self.regs.get_si() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ss,
+                                (self.regs.get_bp() + self.regs.get_si() + disp) as u32,
+                            ))
+                        }
                     }
                     3 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + self.regs.get_di() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + self.regs.get_di() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ss,
+                                (self.regs.get_bp() + self.regs.get_di() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ss,
+                                (self.regs.get_bp() + self.regs.get_di() + disp) as u32,
+                            ))
+                        }
                     }
                     4 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_si() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_si() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_si() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_si() + disp) as u32,
+                            ))
+                        }
                     }
                     5 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_di() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_di() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_di() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_di() + disp) as u32,
+                            ))
+                        }
                     }
                     6 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ss,(self.regs.get_bp() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ss,
+                                (self.regs.get_bp() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ss,
+                                (self.regs.get_bp() + disp) as u32,
+                            ))
+                        }
                     }
                     7 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + disp) as u32,
+                            ))
+                        }
                     }
                     8..=u8::MAX => unreachable!(),
                 };
@@ -293,60 +382,102 @@ impl Cpu {
                 let res = match b2.rm() {
                     0 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_si() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_si() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + self.regs.get_si() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + self.regs.get_si() + disp) as u32,
+                            ))
+                        }
                     }
                     1 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_di() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + self.regs.get_di() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + self.regs.get_di() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + self.regs.get_di() + disp) as u32,
+                            ))
+                        }
                     }
                     2 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + self.regs.get_si() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + self.regs.get_si() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ss,
+                                (self.regs.get_bp() + self.regs.get_si() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ss,
+                                (self.regs.get_bp() + self.regs.get_si() + disp) as u32,
+                            ))
+                        }
                     }
                     3 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + self.regs.get_di() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ss, (self.regs.get_bp() + self.regs.get_di() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ss,
+                                (self.regs.get_bp() + self.regs.get_di() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ss,
+                                (self.regs.get_bp() + self.regs.get_di() + disp) as u32,
+                            ))
+                        }
                     }
                     4 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_si() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_si() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_si() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_si() + disp) as u32,
+                            ))
+                        }
                     }
                     5 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_di() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_di() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_di() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_di() + disp) as u32,
+                            ))
+                        }
                     }
                     6 => {
                         let offt = self.mem.read_u16() as u32;
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, offt)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, offt)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(Segment::Ds, offt))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(Segment::Ds, offt))
+                        }
                     }
                     7 => {
                         if b1.word() {
-                            Operand::Mem16(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + disp) as u32)
-                        )} else {
-                            Operand::Mem8(self.get_segment_offset(Segment::Ds, (self.regs.get_bx() + disp) as u32)
-                        )}
+                            Operand::Mem16(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + disp) as u32,
+                            ))
+                        } else {
+                            Operand::Mem8(self.get_segment_offset(
+                                Segment::Ds,
+                                (self.regs.get_bx() + disp) as u32,
+                            ))
+                        }
                     }
                     8..=u8::MAX => unreachable!(),
                 };
@@ -401,40 +532,30 @@ impl Cpu {
                     dest: result.0,
                     src: result.1,
                 })
-            }, 
-            1 => {
-                match b1.to_u8() & 0b11 {
-                    0 => {
-                        Some(Instruction{
-                            opcode: Opcode::Add,
-                            dest: Operand::Reg8(0),
-                            src: Operand::Imm8(self.mem.read_u8())
-                        })
-                    }
-                    1 => {
-                        Some(Instruction{
-                            opcode: Opcode::Add,
-                            dest: Operand::Reg16(0),
-                            src: Operand::Imm16(self.mem.read_u16())
-                        })
-                    },
-                    2 => {
-                        Some(Instruction{
-                            opcode: Opcode::PushEs,
-                            dest: Operand::Reg8(0),
-                            src: Operand::Imm8(0)
-                        })
-                    },
-                    3 => {
-                        Some(Instruction{
-                            opcode: Opcode::PopEs,
-                            dest: Operand::Reg8(0),
-                            src: Operand::Imm8(0)
-                        })
-                    }
-                    _=> unreachable!()
-                }
             }
+            1 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Add,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Add,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::PushEs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::PopEs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                _ => unreachable!(),
+            },
             _ => unreachable!(),
         }
     }
@@ -445,18 +566,13 @@ impl Cpu {
             Operand::Mem16(i) => {
                 self.mem.seek_to(i as u64);
                 self.mem.read_u16()
-            },
+            }
             Operand::Mem8(i) => {
                 self.mem.seek_to(i as u64);
                 self.mem.read_u8() as u16
             }
-            ,
-            Operand::Reg8(i) => {
-                self.get_reg(i, false)
-            },
-            Operand::Reg16(i) => {
-                self.get_reg(i, true)
-            },
+            Operand::Reg8(i) => self.get_reg(i, false),
+            Operand::Reg16(i) => self.get_reg(i, true),
             Operand::Imm8(i) => i as u16,
             Operand::Imm16(i) => i,
         };
@@ -496,12 +612,12 @@ impl Cpu {
 
     //pub fn add()
 
-    fn even_parity(mut val: u8)-> bool {
+    fn even_parity(mut val: u8) -> bool {
         let mut res = 0;
         while val > 0 {
             res += val & 1;
             val >>= 1;
-        } 
+        }
         res % 2 == 0
     }
 
@@ -526,20 +642,20 @@ impl Cpu {
 
         let result = dest.wrapping_add(src);
 
-        if(Self::aux_add(dest, src)) {
+        if (Self::aux_add(dest, src)) {
             self.regs.flags.set_af();
         }
 
         if Self::even_parity(result as u8) {
             self.regs.flags.set_pf();
         }
-        
+
         if result == 0 {
             self.regs.flags.set_zf();
         }
 
         match d {
-            Operand::Mem16(p) => { 
+            Operand::Mem16(p) => {
                 if (dest as i16).overflowing_add(src as i16).1 {
                     self.regs.flags.set_of();
                 }
@@ -553,7 +669,7 @@ impl Cpu {
                 }
 
                 self.write_mem_u16(p, result)
-            },
+            }
             Operand::Mem8(p) => {
                 if (dest as i8).overflowing_add(src as i8).1 {
                     self.regs.flags.set_of();
@@ -563,13 +679,12 @@ impl Cpu {
                     self.regs.flags.set_cf();
                 }
 
-
                 if result & !0b01111111 > 0 {
                     self.regs.flags.set_sf();
                 }
 
                 self.write_mem_u8(p, result as u8)
-            },
+            }
             Operand::Reg8(r) => {
                 if (dest as i8).overflowing_add(src as i8).1 {
                     self.regs.flags.set_of();
@@ -579,12 +694,11 @@ impl Cpu {
                     self.regs.flags.set_cf();
                 }
 
-
                 if result & !0b01111111 > 0 {
                     self.regs.flags.set_sf();
                 }
                 self.set_reg(r, false, result)
-            },
+            }
             Operand::Reg16(r) => {
                 if (dest as i16).overflowing_add(src as i16).1 {
                     self.regs.flags.set_of();
@@ -598,11 +712,10 @@ impl Cpu {
                     self.regs.flags.set_sf();
                 }
                 self.set_reg(r, true, result)
-            },
-            _ => unreachable!("Immediate destination")
+            }
+            _ => unreachable!("Immediate destination"),
         }
     }
-
 
     pub fn execute(&mut self, inst: &Instruction) {
         match inst.opcode {
@@ -610,13 +723,13 @@ impl Cpu {
             Opcode::PushEs => {
                 self.regs.sp.wrapping_sub(2);
                 self.write_mem_u16(self.stack_addr(self.regs.sp), self.regs.es as u16);
-            },
+            }
             Opcode::PopEs => {
                 let es = self.read_mem_u16(self.stack_addr(self.regs.sp));
                 self.regs.sp.wrapping_add(2);
                 self.regs.es = es as u32;
             }
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 
@@ -667,7 +780,10 @@ impl Cpu {
 mod cpu_test {
 
     use super::{Cpu, Instruction};
-    use crate::{cpu::{self, Opcode, Operand}, mem::Byte1};
+    use crate::{
+        cpu::{self, Opcode, Operand},
+        mem::Byte1,
+    };
 
     #[test]
     #[should_panic]
@@ -805,14 +921,18 @@ mod cpu_test {
         cpu.regs.set_ss(0);
         cpu.regs.set_es(0);
 
-        cpu.execute(&Instruction{
-            opcode: Opcode::Add, dest: Operand::Reg8(0), src: Operand::Reg8(0)
+        cpu.execute(&Instruction {
+            opcode: Opcode::Add,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
         });
         assert!(cpu.regs.flags.zf());
 
         cpu.regs.set_ax(255);
-        cpu.execute(&Instruction{
-            opcode: Opcode::Add, dest: Operand::Reg8(0), src: Operand::Reg8(0)
+        cpu.execute(&Instruction {
+            opcode: Opcode::Add,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
         });
 
         assert!(cpu.regs.flags.af());
@@ -820,21 +940,24 @@ mod cpu_test {
         assert!(!cpu.regs.flags.of());
         assert!(cpu.regs.flags.sf());
 
-
         cpu.regs.set_ax(70);
-        cpu.execute(&Instruction{
-            opcode: Opcode::Add, dest: Operand::Reg8(0), src: Operand::Reg8(0)
+        cpu.execute(&Instruction {
+            opcode: Opcode::Add,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
         });
 
         assert!(cpu.regs.flags.of());
 
         let a = -127i8;
-        
+
         assert!(a.overflowing_add(a).1);
 
         cpu.regs.set_ax(a as u16);
-        cpu.execute(&Instruction{
-            opcode: Opcode::Add, dest: Operand::Reg8(0), src: Operand::Reg8(0)
+        cpu.execute(&Instruction {
+            opcode: Opcode::Add,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
         });
         assert!(cpu.regs.flags.of());
     }
@@ -847,18 +970,18 @@ mod cpu_test {
         cpu.regs.set_ds(0);
         cpu.regs.set_ss(4096);
         cpu.regs.set_es(32);
-        cpu.execute(&Instruction{
+        cpu.execute(&Instruction {
             opcode: Opcode::PushEs,
             dest: Operand::Reg8(0),
-            src: Operand::Reg8(0)
+            src: Operand::Reg8(0),
         });
-        assert_eq!(cpu.read_mem_u16(cpu.stack_addr(cpu.regs.sp)),2);
-        cpu.write_mem_u16(cpu.stack_addr(cpu.regs.sp) , 64);
-        cpu.execute(&Instruction{
+        assert_eq!(cpu.read_mem_u16(cpu.stack_addr(cpu.regs.sp)), 2);
+        cpu.write_mem_u16(cpu.stack_addr(cpu.regs.sp), 64);
+        cpu.execute(&Instruction {
             opcode: Opcode::PopEs,
             dest: Operand::Reg8(0),
-            src: Operand::Reg8(0)
+            src: Operand::Reg8(0),
         });
-        assert_eq!(cpu.regs.es,64);
+        assert_eq!(cpu.regs.es, 64);
     }
 }

@@ -4,8 +4,7 @@ use std::fmt::Display;
 //struct Cpu {
 //
 //}
-
-use::paste::paste;
+use ::paste::paste;
 
 pub struct Flags {
     bi: u16,
@@ -13,7 +12,9 @@ pub struct Flags {
 
 impl Default for Flags {
     fn default() -> Self {
-        let mut f = Self { bi: Default::default() };
+        let mut f = Self {
+            bi: Default::default(),
+        };
         f.bi |= 2;
         f
     }
@@ -55,7 +56,6 @@ impl Flags {
         self.bi & !0b1111111111111011 > 0
     }
 
-
     #[inline(always)]
     pub fn clear_af(&mut self) {
         self.bi &= 0b111111111101111;
@@ -68,7 +68,6 @@ impl Flags {
     pub fn af(&self) -> bool {
         self.bi & !0b1111111111101111 > 0
     }
-
 
     #[inline(always)]
     pub fn clear_zf(&mut self) {
@@ -83,8 +82,6 @@ impl Flags {
         self.bi & !0b1111111110111111 > 0
     }
 
-
-
     #[inline(always)]
     pub fn clear_sf(&mut self) {
         self.bi &= 0b1111111101111111;
@@ -97,7 +94,6 @@ impl Flags {
     pub fn sf(&self) -> bool {
         self.bi & !0b1111111101111111 > 0
     }
-
 
     #[inline(always)]
     pub fn clear_tf(&mut self) {
@@ -112,7 +108,6 @@ impl Flags {
         self.bi & !0b1111111011111111 > 0
     }
 
-
     #[inline(always)]
     pub fn clear_if(&mut self) {
         self.bi &= 0b1111110111111111;
@@ -125,7 +120,6 @@ impl Flags {
     pub fn i_f(&self) -> bool {
         self.bi & !0b1111110111111111 > 0
     }
-
 
     #[inline(always)]
     pub fn clear_df(&mut self) {
@@ -152,13 +146,19 @@ impl Flags {
     pub fn of(&self) -> bool {
         self.bi & !0b1111011111111111 > 0
     }
-
 }
 
 impl Display for Flags {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PF: {}\nCF: {}\nOF: {}\nSF: {}\nAF: {}\nZF: {}",
-        self.pf(), self.cf(), self.of(), self.sf(), self.af(), self.zf()
+        write!(
+            f,
+            "PF: {}\nCF: {}\nOF: {}\nSF: {}\nAF: {}\nZF: {}",
+            self.pf(),
+            self.cf(),
+            self.of(),
+            self.sf(),
+            self.af(),
+            self.zf()
         )
     }
 }
@@ -176,13 +176,12 @@ pub struct Registers {
     pub ds: u32,
     pub cs: u32,
     pub ss: u32,
-    pub flags: Flags
+    pub flags: Flags,
 }
-
 
 macro_rules! getsetreg {
     ($full:ident, $low:ident, $high:ident) => {
-        paste!{
+        paste! {
         #[inline(always)]
         pub fn [<set_ $full>] (&mut self, val: u16) {
             self.$full = val;
@@ -208,7 +207,7 @@ macro_rules! getsetreg {
         pub fn [<set_ $high>](&mut self, val:u8) {
             self.$full &= 0xff;
             self.$full |= (val as u16) << 8;
-        } 
+        }
         }
     };
 }
@@ -225,7 +224,7 @@ impl Registers {
     #[inline(always)]
     pub fn set_si(&mut self, val: u16) {
         self.si = val;
-    } 
+    }
     #[inline(always)]
     pub fn get_di(&self) -> u16 {
         self.di
@@ -233,7 +232,7 @@ impl Registers {
     #[inline(always)]
     pub fn set_di(&mut self, val: u16) {
         self.di = val;
-    } 
+    }
     #[inline(always)]
     pub fn get_bp(&self) -> u16 {
         self.bp
@@ -241,7 +240,7 @@ impl Registers {
     #[inline(always)]
     pub fn set_bp(&mut self, val: u16) {
         self.bp = val;
-    } 
+    }
 
     #[inline(always)]
     pub fn get_sp(&self) -> u16 {
@@ -250,7 +249,7 @@ impl Registers {
     #[inline(always)]
     pub fn set_sp(&mut self, val: u16) {
         self.sp = val;
-    } 
+    }
 
     #[inline(always)]
     pub fn get_ss(&self) -> u32 {
@@ -258,9 +257,9 @@ impl Registers {
     }
     #[inline(always)]
     pub fn set_ss(&mut self, val: u32) {
-        assert!(val%16 == 0);
+        assert!(val % 16 == 0);
         self.ss = val >> 4;
-    } 
+    }
 
     #[inline(always)]
     pub fn get_cs(&self) -> u32 {
@@ -268,9 +267,9 @@ impl Registers {
     }
     #[inline(always)]
     pub fn set_cs(&mut self, val: u32) {
-        assert!(val%16 == 0);
+        assert!(val % 16 == 0);
         self.cs = val >> 4;
-    } 
+    }
 
     #[inline(always)]
     pub fn get_ds(&self) -> u32 {
@@ -278,9 +277,9 @@ impl Registers {
     }
     #[inline(always)]
     pub fn set_ds(&mut self, val: u32) {
-        assert!(val%16 == 0);
+        assert!(val % 16 == 0);
         self.ds = val >> 4;
-    } 
+    }
 
     #[inline(always)]
     pub fn get_es(&self) -> u32 {
@@ -288,9 +287,9 @@ impl Registers {
     }
     #[inline(always)]
     pub fn set_es(&mut self, val: u32) {
-        assert!(val%16 == 0);
-        self.es = val>>4;
-    } 
+        assert!(val % 16 == 0);
+        self.es = val >> 4;
+    }
 }
 
 impl Default for Registers {
@@ -308,7 +307,7 @@ impl Default for Registers {
             ds: Default::default(),
             es: Default::default(),
             cs: Default::default(),
-            flags: Flags::default()
+            flags: Flags::default(),
         }
     }
 }
@@ -323,7 +322,7 @@ mod test {
         regs.set_ax(30000);
         assert_eq!(regs.get_ax(), 30000);
         assert_eq!(regs.get_al() as u16, 30000 & 0xff);
-        assert_eq!(regs.get_ah() as u16, (30000 >> 8) );
+        assert_eq!(regs.get_ah() as u16, (30000 >> 8));
         regs.set_ah(40);
         assert_eq!(regs.get_ah(), 40);
         assert_eq!(regs.get_al() as u16, 30000 & 0xff);
@@ -334,7 +333,7 @@ mod test {
         regs.set_bx(30000);
         assert_eq!(regs.get_bx(), 30000);
         assert_eq!(regs.get_bl() as u16, 30000 & 0xff);
-        assert_eq!(regs.get_bh() as u16, (30000 >> 8) );
+        assert_eq!(regs.get_bh() as u16, (30000 >> 8));
         regs.set_bh(40);
         assert_eq!(regs.get_bh(), 40);
         assert_eq!(regs.get_bl() as u16, 30000 & 0xff);
@@ -345,7 +344,7 @@ mod test {
 
     #[test]
     pub fn test2() {
-        let mut f:Flags = Flags::default();
+        let mut f: Flags = Flags::default();
         assert_eq!(f.bi, 2);
         f.set_cf();
         assert!(f.bi == 3);
@@ -403,7 +402,6 @@ mod test {
         assert!(f.sf());
         assert!(f.zf());
 
-
         f.clear_cf();
         assert!(!f.cf());
         f.clear_af();
@@ -460,4 +458,3 @@ mod test {
         assert!(!f.zf());
     }
 }
-

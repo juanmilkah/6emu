@@ -1,13 +1,16 @@
-use std::{io::{Cursor, Read, Seek, Write}, mem::MaybeUninit};
+use std::{
+    io::{Cursor, Read, Seek, Write},
+    mem::MaybeUninit,
+};
 
 #[derive(Clone, Copy)]
-pub struct Byte1{
-    bp: u8
+pub struct Byte1 {
+    bp: u8,
 }
 
 impl Byte1 {
     pub fn new(bp: u8) -> Self {
-        Self{bp}
+        Self { bp }
     }
 
     pub fn word(&self) -> bool {
@@ -27,13 +30,13 @@ impl Byte1 {
     }
 }
 
-pub struct Byte2{
-    bp: u8
+pub struct Byte2 {
+    bp: u8,
 }
 
 impl Byte2 {
-    pub fn new(bp:u8)->Self{
-        Self{bp}
+    pub fn new(bp: u8) -> Self {
+        Self { bp }
     }
 
     pub fn to_u8(&self) -> u8 {
@@ -53,16 +56,14 @@ impl Byte2 {
     }
 }
 
-pub struct Mem{
-    cursor: Cursor<Vec<u8>>
+pub struct Mem {
+    cursor: Cursor<Vec<u8>>,
 }
 
 impl Mem {
     pub fn new() -> Self {
-        Self{
-            cursor: Cursor::new(
-                Vec::with_capacity(1024 * 1024)
-            )
+        Self {
+            cursor: Cursor::new(Vec::with_capacity(1024 * 1024)),
         }
     }
 
@@ -74,39 +75,53 @@ impl Mem {
 
     pub fn read_u16(&mut self) -> u16 {
         let mut buf = [0u8, 0];
-        self.cursor.read_exact(&mut buf).expect("failed to read u16");
+        self.cursor
+            .read_exact(&mut buf)
+            .expect("failed to read u16");
         u16::from_le_bytes(buf)
     }
 
     pub fn read_i8(&mut self) -> i8 {
         let mut buf = [0u8];
-        self.cursor.read_exact(&mut buf).expect("failed to read i16");
+        self.cursor
+            .read_exact(&mut buf)
+            .expect("failed to read i16");
         i8::from_le_bytes(buf)
     }
 
     pub fn read_i16(&mut self) -> i16 {
         let mut buf = [0u8, 0];
-        self.cursor.read_exact(&mut buf).expect("failed to read i16");
+        self.cursor
+            .read_exact(&mut buf)
+            .expect("failed to read i16");
         i16::from_le_bytes(buf)
     }
 
     pub fn write_u8(&mut self, val: u8) {
-        self.cursor.write_all(&val.to_le_bytes()).expect("failed to write u8");
+        self.cursor
+            .write_all(&val.to_le_bytes())
+            .expect("failed to write u8");
         self.cursor.flush();
     }
 
     pub fn write_u16(&mut self, val: u16) {
-        self.cursor.write_all(&val.to_le_bytes()).expect("failed to write u16");
+        self.cursor
+            .write_all(&val.to_le_bytes())
+            .expect("failed to write u16");
         self.cursor.flush();
     }
 
     pub fn write_i8(&mut self, val: u8) {
-        self.cursor.write_all(&val.to_le_bytes()).expect("failed to r i8");
+        self.cursor
+            .write_all(&val.to_le_bytes())
+            .expect("failed to r i8");
         self.cursor.flush();
     }
 
     pub fn write_i16(&mut self, val: i16) {
-        self.cursor.write_all(&val.to_le_bytes()).expect("failed to read i16");
+        self.cursor
+            .write_all(&val.to_le_bytes())
+            .expect("failed to read i16");
         self.cursor.flush();
     }
 
@@ -115,10 +130,12 @@ impl Mem {
     }
 
     pub fn seek_by(&mut self, val: i64) {
-        self.cursor.seek_relative(val).expect("failed to seek thy kindom");
+        self.cursor
+            .seek_relative(val)
+            .expect("failed to seek thy kindom");
     }
 
-    pub fn pos(&self) -> u64{
+    pub fn pos(&self) -> u64 {
         self.cursor.position()
     }
 }
