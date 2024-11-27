@@ -16,10 +16,11 @@ fn main() {
     //cpu.regs.set_ax(110);
 
     while let Some(i) = cpu.fetch() {
-        println!("[{}] {:?}",cpu.regs.ip, i);
+        println!("[{}] {:?}", cpu.regs.ip, i);
         cpu.execute(&i);
     }
 
     println!("AX: {}", cpu.regs.get_ax());
     println!("{}", cpu.regs.flags);
+    println!("{:?}", 0i8.overflowing_add(1))
 }

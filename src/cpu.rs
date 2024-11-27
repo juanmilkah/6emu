@@ -31,8 +31,77 @@ pub enum Opcode {
     PushSs,
     PopSs,
     Sbb,
+    Sub,
+    Cmp,
     PushDs,
-    PopDs
+    PopDs,
+    And,
+    Xor,
+    OverrideEs,
+    OverrideCs,
+    OverrideSs,
+    OverrideDs,
+    Daa,
+    Aas,
+    Das,
+    Aaa,
+    IncAx,
+    IncCx,
+    IncBx,
+    IncDx,
+    IncSp,
+    IncBp,
+    IncSi,
+    IncDi,
+    DecAx,
+    DecCx,
+    DecBx,
+    DecDx,
+    DecSp,
+    DecBp,
+    DecSi,
+    DecDi,
+
+    PushAx,
+    PushCx,
+    PushBx,
+    PushDx,
+    PushSp,
+    PushBp,
+    PushSi,
+    PushDi,
+
+    PopAx,
+    PopCx,
+    PopBx,
+    PopDx,
+    PopSp,
+    PopBp,
+    PopSi,
+    PopDi,
+
+    Jo,
+    Jno,
+    Jb,
+    Jnb,
+    Jz,
+    Jnz,
+    Jbe,
+    Jnbe,
+    Js,
+    Jns,
+    Jp,
+    Jnp,
+    Jl,
+    Jnl,
+    Jle,
+    Jnle,
+}
+
+pub enum BitOp {
+    And,
+    Xor,
+    Or,
 }
 
 #[derive(Debug)]
@@ -42,6 +111,7 @@ pub struct Instruction {
     src: Operand,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum Segment {
     Ds,
     Es,
@@ -169,8 +239,8 @@ impl Cpu {
     pub fn get_segment_offset(&mut self, seg: Segment, offt: u32) -> u32 {
         if let Some(ov) = &self.seg_override {
             let res = self.ea(ov, offt);
-            self.seg_override = None;
-            unimplemented!("segment override");
+            //self.seg_override = None;
+            //unimplemented!("segment override");
             res
         } else {
             self.ea(&seg, offt)
@@ -511,7 +581,6 @@ impl Cpu {
         let res = match b1.opcode() {
             0 => {
                 b2 = Byte2::new(self.mem.read_u8());
-
                 if (b1.reg_is_dest()) {
                     result.0 = match b1.word() {
                         true => Operand::Reg16(b2.reg()),
@@ -624,7 +693,638 @@ impl Cpu {
                 }),
                 _ => unreachable!("instruction 3:2"),
             },
-            _ => unreachable!(),
+            4 => {
+                b2 = Byte2::new(self.mem.read_u8());
+                if (b1.reg_is_dest()) {
+                    result.0 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.1 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    }
+                } else {
+                    result.1 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.0 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    };
+                }
+
+                Some(Instruction {
+                    opcode: Opcode::Adc,
+                    dest: result.0,
+                    src: result.1,
+                })
+            }
+            5 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Adc,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Adc,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::PushSs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::PopSs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            6 => {
+                b2 = Byte2::new(self.mem.read_u8());
+                if (b1.reg_is_dest()) {
+                    result.0 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.1 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    }
+                } else {
+                    result.1 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.0 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    };
+                }
+
+                Some(Instruction {
+                    opcode: Opcode::Sbb,
+                    dest: result.0,
+                    src: result.1,
+                })
+            }
+            7 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Sbb,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Sbb,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::PushDs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::PopDs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            8 => {
+                b2 = Byte2::new(self.mem.read_u8());
+                if (b1.reg_is_dest()) {
+                    result.0 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.1 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    }
+                } else {
+                    result.1 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.0 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    };
+                }
+
+                Some(Instruction {
+                    opcode: Opcode::And,
+                    dest: result.0,
+                    src: result.1,
+                })
+            }
+            9 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::And,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Add,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::OverrideEs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::Daa,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            10 => {
+                b2 = Byte2::new(self.mem.read_u8());
+                if (b1.reg_is_dest()) {
+                    result.0 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.1 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    }
+                } else {
+                    result.1 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.0 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    };
+                }
+
+                Some(Instruction {
+                    opcode: Opcode::Sub,
+                    dest: result.0,
+                    src: result.1,
+                })
+            }
+            11 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Sub,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Sub,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::OverrideCs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::Das,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            12 => {
+                b2 = Byte2::new(self.mem.read_u8());
+                if (b1.reg_is_dest()) {
+                    result.0 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.1 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    }
+                } else {
+                    result.1 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.0 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    };
+                }
+
+                Some(Instruction {
+                    opcode: Opcode::Xor,
+                    dest: result.0,
+                    src: result.1,
+                })
+            }
+            13 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Xor,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Xor,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::OverrideSs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::Aaa,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            14 => {
+                b2 = Byte2::new(self.mem.read_u8());
+                if (b1.reg_is_dest()) {
+                    result.0 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.1 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    }
+                } else {
+                    result.1 = match b1.word() {
+                        true => Operand::Reg16(b2.reg()),
+                        false => Operand::Reg8(b2.reg()),
+                    };
+
+                    result.0 = match b2.modd() {
+                        3 => match b1.word() {
+                            true => Operand::Reg16(b2.rm()),
+                            false => Operand::Reg8(b2.rm()),
+                        },
+                        _ => self.calc_op_displacement(b1, b2),
+                    };
+                }
+
+                Some(Instruction {
+                    opcode: Opcode::Cmp,
+                    dest: result.0,
+                    src: result.1,
+                })
+            }
+            15 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Cmp,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Cmp,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::OverrideDs,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::Aas,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            16 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::IncAx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::IncCx,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::IncDx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::IncBx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+
+            17 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::IncSp,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::IncBp,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::IncSi,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::IncDi,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            18 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::DecAx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::DecCx,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::DecDx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::DecBx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            19 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::DecSp,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::DecBp,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::DecSi,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::DecDi,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            20 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::PushAx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::PushCx,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::PushDx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::PushBx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            21 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::PushSp,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::PushBp,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::PushSi,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::PushDi,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            22 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::PopAx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::PopCx,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::PopDx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::PopBx,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            23 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::PopSp,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::PopBp,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::PopSi,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::PopDi,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            28 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Jo,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Jno,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::Jb,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::Jnb,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            29 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Jz,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Jnz,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::Jbe,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::Jnbe,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            30 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Js,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Jns,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::Jp,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::Jnp,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            31 => match b1.to_u8() & 0b11 {
+                0 => Some(Instruction {
+                    opcode: Opcode::Jl,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                1 => Some(Instruction {
+                    opcode: Opcode::Jnl,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                2 => Some(Instruction {
+                    opcode: Opcode::Jle,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                3 => Some(Instruction {
+                    opcode: Opcode::Jnle,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                }),
+                _ => unreachable!("instruction 3:2"),
+            },
+            _ => unimplemented!("Opcode: {}", b1.opcode()),
         };
         self.regs.ip = self.regs.ip.wrapping_add((self.mem.pos() - old_pos) as u16);
         res
@@ -704,15 +1404,14 @@ impl Cpu {
         (a & 0b1111) < (b & 0b1111)
     }
 
-    fn sub(&mut self, d: Operand, s: Operand, sbb: bool) {
-        
+    fn sub(&mut self, d: Operand, s: Operand, sbb: bool, cmp: bool) {
         let dest = self.operand_value(d);
         let src = self.operand_value(s);
 
         let mut result = dest.wrapping_sub(src);
 
         if sbb {
-            if(self.regs.flags.cf()) {
+            if (self.regs.flags.cf()) {
                 result = result.wrapping_sub(1);
             }
         }
@@ -745,7 +1444,9 @@ impl Cpu {
                     self.regs.flags.set_sf();
                 }
 
-                self.write_mem_u16(p, result)
+                if !cmp {
+                    self.write_mem_u16(p, result)
+                }
             }
             Operand::Mem8(p) => {
                 if (dest as i8).overflowing_sub(src as i8).1 {
@@ -760,7 +1461,9 @@ impl Cpu {
                     self.regs.flags.set_sf();
                 }
 
-                self.write_mem_u8(p, result as u8)
+                if !cmp {
+                    self.write_mem_u8(p, result as u8)
+                }
             }
             Operand::Reg8(r) => {
                 if (dest as i8).overflowing_sub(src as i8).1 {
@@ -774,7 +1477,10 @@ impl Cpu {
                 if result & !0b01111111 > 0 {
                     self.regs.flags.set_sf();
                 }
-                self.set_reg(r, false, result)
+
+                if !cmp {
+                    self.set_reg(r, false, result)
+                }
             }
             Operand::Reg16(r) => {
                 if (dest as i16).overflowing_sub(src as i16).1 {
@@ -788,26 +1494,28 @@ impl Cpu {
                 if result & !0b01111111_11111111 > 0 {
                     self.regs.flags.set_sf();
                 }
-                self.set_reg(r, true, result)
+
+                if !cmp {
+                    self.set_reg(r, true, result)
+                }
             }
             _ => unreachable!("Immediate destination"),
         }
     }
-    
+
     fn add(&mut self, d: Operand, s: Operand, adc: bool) {
-        
         let dest = self.operand_value(d);
         let src = self.operand_value(s);
-        
+
         let mut result = dest.wrapping_add(src);
 
         if adc {
-            if(self.regs.flags.cf()) {
+            if (self.regs.flags.cf()) {
                 result = result.wrapping_add(1);
             }
         }
         self.regs.flags.clear_arith();
-        
+
         if (Self::aux_add(dest, src)) {
             self.regs.flags.set_af();
         }
@@ -883,13 +1591,17 @@ impl Cpu {
         }
     }
 
-    pub fn or(&mut self, d: Operand, s: Operand) {
+    pub fn bit_op(&mut self, d: Operand, s: Operand, op: BitOp) {
         self.regs.flags.clear_arith();
-        
+
         let dest = self.operand_value(d);
         let src = self.operand_value(s);
 
-        let result = dest | src;
+        let result = match op {
+            BitOp::And => dest & src,
+            BitOp::Xor => dest ^ src,
+            BitOp::Or => dest | src,
+        };
 
         if Self::even_parity(result as u8) {
             self.regs.flags.set_pf();
@@ -930,42 +1642,315 @@ impl Cpu {
         }
     }
 
+    fn daa(&mut self) {
+        let mut al = self.regs.get_al();
+        if al & 0b1111 > 9 || self.regs.flags.af() {
+            al = al.wrapping_add(6);
+            self.regs.flags.set_af();
+        }
+
+        if al > 0x9f || self.regs.flags.cf() {
+            al = al.wrapping_add(0x60);
+            self.regs.flags.set_cf();
+        }
+
+        if (al == 0) {
+            self.regs.flags.set_zf();
+        }
+
+        if al & 128 > 0 {
+            self.regs.flags.set_sf();
+        }
+
+        if al & 128 != self.regs.get_al() & 128 {
+            self.regs.flags.set_of();
+        }
+
+        if Self::even_parity(al) {
+            self.regs.flags.set_pf();
+        }
+
+        self.regs.set_al(al);
+    }
+
+    fn aaa(&mut self) {
+        let mut al = self.regs.get_al();
+        let mut ah = self.regs.get_ah();
+        if al & 0b1111 > 9 || self.regs.flags.af() {
+            al = al.wrapping_add(6);
+            ah = ah.wrapping_add(1);
+            self.regs.flags.set_af();
+            self.regs.flags.set_cf();
+        } else {
+            self.regs.flags.clear_af();
+            self.regs.flags.clear_cf();
+        }
+        self.regs.set_al(al & 0b1111);
+        self.regs.set_ah(ah);
+    }
+
+    fn das(&mut self) {
+        let mut al = self.regs.get_al();
+        if al & 0b1111 > 9 || self.regs.flags.af() {
+            al = al.wrapping_sub(6);
+            self.regs.flags.set_af();
+        }
+
+        if al > 0x9f || self.regs.flags.cf() {
+            al = al.wrapping_sub(0x60);
+            self.regs.flags.set_cf();
+        }
+
+        if (al == 0) {
+            self.regs.flags.set_zf();
+        }
+
+        if al & 128 > 0 {
+            self.regs.flags.set_sf();
+        }
+
+        if al & 128 != self.regs.get_al() & 128 {
+            self.regs.flags.set_of();
+        }
+
+        if Self::even_parity(al) {
+            self.regs.flags.set_pf();
+        }
+
+        self.regs.set_al(al);
+    }
+
+    fn aas(&mut self) {
+        let mut al = self.regs.get_al();
+        let mut ah = self.regs.get_ah();
+        if al & 0b1111 > 9 || self.regs.flags.af() {
+            al = al.wrapping_sub(6);
+            ah = ah.wrapping_sub(1);
+            self.regs.flags.set_af();
+            self.regs.flags.set_cf();
+        } else {
+            self.regs.flags.clear_af();
+            self.regs.flags.clear_cf();
+        }
+        self.regs.set_al(al & 0b1111);
+        self.regs.set_ah(ah);
+    }
+
+    fn push(&mut self, val: u16) {
+        self.regs.sp = self.regs.sp.wrapping_sub(2);
+        self.write_mem_u16(self.stack_addr(self.regs.sp), val);
+    }
+
+    fn pop(&mut self) -> u16 {
+        let v = self.read_mem_u16(self.stack_addr(self.regs.sp));
+        self.regs.sp = self.regs.sp.wrapping_add(2);
+        v
+    }
+
+    fn adjust_ip_short(&mut self, val: u8) {
+        let v = val as i8;
+        if v >= 0 {
+            self.regs.ip = self.regs.ip.wrapping_add(v.abs() as u16);
+        } else {
+            self.regs.ip = self.regs.ip.wrapping_sub(v.abs() as u16);
+        }
+    }
+
     pub fn execute(&mut self, inst: &Instruction) {
         match inst.opcode {
-            Opcode::Or => self.or(inst.dest, inst.src),
+            Opcode::Or => self.bit_op(inst.dest, inst.src, BitOp::Or),
             Opcode::Add => self.add(inst.dest, inst.src, false),
             Opcode::Adc => self.add(inst.dest, inst.src, true),
-            Opcode::Sbb => self.sub(inst.dest, inst.src, true),
+            Opcode::Sbb => self.sub(inst.dest, inst.src, true, false),
+            Opcode::Sub => self.sub(inst.dest, inst.src, false, false),
+            Opcode::Cmp => self.sub(inst.dest, inst.src, false, true),
             Opcode::PushEs => {
-                self.regs.sp = self.regs.sp.wrapping_sub(2);
-                self.write_mem_u16(self.stack_addr(self.regs.sp), self.regs.es as u16);
-            },
-            Opcode::PushCs => {
-                self.regs.sp = self.regs.sp.wrapping_sub(2);
-                self.write_mem_u16(self.stack_addr(self.regs.sp), self.regs.cs as u16);
-            },
-            Opcode::PopEs => {
-                self.regs.es = self.read_mem_u16(self.stack_addr(self.regs.sp)) as u32;
-                self.regs.sp = self.regs.sp.wrapping_add(2);
-            },
-            Opcode::PushSs => {
-                self.regs.sp = self.regs.sp.wrapping_sub(2);
-                self.write_mem_u16(self.stack_addr(self.regs.sp), self.regs.ss as u16);
-            },
-            Opcode::PopSs => {
-                self.regs.ss = self.read_mem_u16(self.stack_addr(self.regs.sp)) as u32;
-                self.regs.sp = self.regs.sp.wrapping_add(2);
-            },
-            Opcode::PushDs => {
-                self.regs.sp = self.regs.sp.wrapping_sub(2);
-                self.write_mem_u16(self.stack_addr(self.regs.sp), self.regs.ds as u16);
-            },
-            Opcode::PopDs => {
-                self.regs.ds = self.read_mem_u16(self.stack_addr(self.regs.sp)) as u32;
-                self.regs.sp = self.regs.sp.wrapping_add(2);
+                self.push(self.regs.es);
             }
-            _ => unimplemented!(),
+            Opcode::PushCs => {
+                self.push(self.regs.cs);
+            }
+            Opcode::PopEs => {
+                self.regs.es = self.pop();
+            }
+            Opcode::PushSs => {
+                self.push(self.regs.ss);
+            }
+            Opcode::PopSs => {
+                self.regs.ss = self.pop();
+            }
+            Opcode::PushDs => {
+                self.push(self.regs.ds);
+            }
+            Opcode::PopDs => {
+                self.regs.ds = self.pop();
+            }
+            Opcode::And => self.bit_op(inst.dest, inst.src, BitOp::And),
+            Opcode::Xor => self.bit_op(inst.dest, inst.src, BitOp::Xor),
+            Opcode::OverrideCs | Opcode::OverrideDs | Opcode::OverrideEs | Opcode::OverrideSs => {
+                match inst.opcode {
+                    Opcode::OverrideEs => self.seg_override = Some(Segment::Es),
+                    Opcode::OverrideCs => self.seg_override = Some(Segment::Cs),
+                    Opcode::OverrideSs => self.seg_override = Some(Segment::Ss),
+                    Opcode::OverrideDs => self.seg_override = Some(Segment::Ds),
+                    _ => unreachable!(),
+                }
+                return;
+            }
+            Opcode::Daa => self.daa(),
+            Opcode::Aaa => self.aaa(),
+            Opcode::Das => self.das(),
+            Opcode::Aas => self.aas(),
+
+            Opcode::IncAx => self.add(Operand::Reg16(0), Operand::Imm16(1), false),
+            Opcode::IncCx => self.add(Operand::Reg16(1), Operand::Imm16(1), false),
+            Opcode::IncBx => self.add(Operand::Reg16(2), Operand::Imm16(1), false),
+            Opcode::IncDx => self.add(Operand::Reg16(3), Operand::Imm16(1), false),
+            Opcode::IncSp => self.add(Operand::Reg16(4), Operand::Imm16(1), false),
+            Opcode::IncBp => self.add(Operand::Reg16(5), Operand::Imm16(1), false),
+            Opcode::IncSi => self.add(Operand::Reg16(6), Operand::Imm16(1), false),
+            Opcode::IncDi => self.add(Operand::Reg16(7), Operand::Imm16(1), false),
+
+            Opcode::DecAx => self.sub(Operand::Reg16(0), Operand::Imm16(1), false, false),
+            Opcode::DecCx => self.sub(Operand::Reg16(1), Operand::Imm16(1), false, false),
+            Opcode::DecBx => self.sub(Operand::Reg16(2), Operand::Imm16(1), false, false),
+            Opcode::DecDx => self.sub(Operand::Reg16(3), Operand::Imm16(1), false, false),
+            Opcode::DecSp => self.sub(Operand::Reg16(4), Operand::Imm16(1), false, false),
+            Opcode::DecBp => self.sub(Operand::Reg16(5), Operand::Imm16(1), false, false),
+            Opcode::DecSi => self.sub(Operand::Reg16(6), Operand::Imm16(1), false, false),
+            Opcode::DecDi => self.sub(Operand::Reg16(7), Operand::Imm16(1), false, false),
+            Opcode::PushAx => self.push(self.regs.ax),
+            Opcode::PushCx => self.push(self.regs.cx),
+            Opcode::PushBx => self.push(self.regs.bx),
+            Opcode::PushDx => self.push(self.regs.dx),
+            Opcode::PushSp => self.push(self.regs.sp),
+            Opcode::PushBp => self.push(self.regs.bp),
+            Opcode::PushSi => self.push(self.regs.si),
+            Opcode::PushDi => self.push(self.regs.di),
+            Opcode::PopAx => self.regs.ax = self.pop(),
+            Opcode::PopCx => self.regs.cx = self.pop(),
+            Opcode::PopBx => self.regs.bx = self.pop(),
+            Opcode::PopDx => self.regs.dx = self.pop(),
+            Opcode::PopSp => self.regs.sp = self.pop(),
+            Opcode::PopBp => self.regs.bp = self.pop(),
+            Opcode::PopSi => self.regs.si = self.pop(),
+            Opcode::PopDi => self.regs.di = self.pop(),
+            Opcode::Jo => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if self.regs.flags.of() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jno => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if !self.regs.flags.of() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jb => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if self.regs.flags.cf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jnb => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if !self.regs.flags.cf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jz => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if self.regs.flags.zf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jnz => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if !self.regs.flags.zf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jbe => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if self.regs.flags.cf() || self.regs.flags.zf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jnbe => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if !self.regs.flags.cf() && !self.regs.flags.zf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Js => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if self.regs.flags.sf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jns => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if !self.regs.flags.sf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jp => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if self.regs.flags.pf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jnp => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if !self.regs.flags.pf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jl => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if self.regs.flags.sf() != self.regs.flags.of() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jnl => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if self.regs.flags.sf() == self.regs.flags.of() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jle => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if (self.regs.flags.sf() != self.regs.flags.of()) || self.regs.flags.zf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            Opcode::Jnle => {
+                if let Operand::Imm8(i) = inst.dest {
+                    if (self.regs.flags.sf() == self.regs.flags.of()) || !self.regs.flags.zf() {
+                        self.adjust_ip_short(i);
+                    }
+                }
+            }
+            //_ => unimplemented!(),
         }
+
+        self.seg_override = None;
     }
 
     // program will be cut
@@ -1021,7 +2006,155 @@ mod cpu_test {
     };
 
     #[test]
-    fn push_pop_ds(){
+    fn cmp() {
+        let mut cpu = Cpu::init();
+        cpu.regs.ax = 0;
+        cpu.execute(&Instruction {
+            opcode: Opcode::Cmp,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+
+        assert_eq!(cpu.regs.flags.zf(), true);
+        assert_eq!(cpu.regs.flags.zf(), true);
+
+        cpu.regs.ax = 1;
+        cpu.regs.cx = 2;
+        cpu.execute(&Instruction {
+            opcode: Opcode::Cmp,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(1),
+        });
+
+        assert_eq!(cpu.regs.flags.cf(), true);
+        assert!(cpu.regs.flags.sf());
+    }
+
+    #[test]
+    fn aas() {
+        let mut cpu = Cpu::init();
+        cpu.regs.ax = 0x2ff;
+        cpu.execute(&Instruction {
+            opcode: Opcode::Aas,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+
+        assert_eq!(cpu.regs.get_ah(), 1);
+        assert_eq!(cpu.regs.get_al(), 9);
+    }
+
+    #[test]
+    fn aaa() {
+        let mut cpu = Cpu::init();
+        cpu.regs.ax = 0xf;
+        cpu.execute(&Instruction {
+            opcode: Opcode::Aaa,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+
+        assert_eq!(cpu.regs.get_ah(), 1);
+        assert_eq!(cpu.regs.get_al(), 5);
+    }
+
+    #[test]
+    fn das() {
+        let mut cpu = Cpu::init();
+        cpu.regs.ax = 0xff;
+        cpu.execute(&Instruction {
+            opcode: Opcode::Das,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+
+        assert_eq!(cpu.regs.get_al(), 0x99);
+        assert!(cpu.regs.flags.cf())
+    }
+
+    #[test]
+    fn daa() {
+        let mut cpu = Cpu::init();
+        cpu.regs.ax = 0xf;
+        cpu.execute(&Instruction {
+            opcode: Opcode::Daa,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+
+        assert_eq!(cpu.regs.get_al(), 0x15)
+    }
+
+    #[test]
+    fn ov_ss() {
+        let mut cpu = Cpu::init();
+        cpu.execute(&Instruction {
+            opcode: Opcode::OverrideSs,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+        cpu.regs.set_cs(0);
+        cpu.regs.set_ds(1024);
+        cpu.regs.set_ss(4096);
+        cpu.regs.set_es(2048);
+
+        assert_eq!(cpu.seg_override, Some(cpu::Segment::Ss));
+
+        assert_eq!(
+            cpu.get_segment_offset(cpu::Segment::Cs, 0),
+            cpu.get_segment_offset(cpu::Segment::Ds, 0)
+        );
+        assert_eq!(
+            cpu.get_segment_offset(cpu::Segment::Es, 0),
+            cpu.get_segment_offset(cpu::Segment::Ss, 0)
+        );
+    }
+
+    #[test]
+    fn and() {
+        let mut cpu = Cpu::init();
+        cpu.regs.ax = 255;
+        cpu.execute(&Instruction {
+            opcode: Opcode::And,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(2),
+        });
+        assert_eq!(cpu.regs.ax, 0);
+        assert!(cpu.regs.flags.zf());
+        assert!(cpu.regs.flags.pf());
+    }
+
+    #[test]
+    fn or2() {
+        let mut cpu = Cpu::init();
+        cpu.regs.ax = 255;
+        cpu.execute(&Instruction {
+            opcode: Opcode::Or,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(1),
+        });
+        assert_eq!(cpu.regs.ax, 255);
+
+        assert!(!cpu.regs.flags.zf());
+        assert!(cpu.regs.flags.pf());
+    }
+
+    #[test]
+    fn xor() {
+        let mut cpu = Cpu::init();
+        cpu.regs.ax = 255;
+        cpu.execute(&Instruction {
+            opcode: Opcode::Xor,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+        assert_eq!(cpu.regs.ax, 0);
+        assert!(cpu.regs.flags.zf());
+        assert!(cpu.regs.flags.pf());
+    }
+
+    #[test]
+    fn push_pop_ds() {
         let mut cpu = Cpu::init();
         cpu.mem.seek_to(cpu.code_addr(0) as u64);
         cpu.regs.set_cs(0);
@@ -1046,8 +2179,7 @@ mod cpu_test {
         });
         assert_eq!(cpu.regs.ds, 64);
         assert_eq!(cpu.regs.sp - sp, 2);
-}
-
+    }
 
     #[test]
     fn sbb() {
@@ -1065,40 +2197,39 @@ mod cpu_test {
         });
 
         assert_eq!(cpu.regs.ax as i8, -1);
-
     }
 
     #[test]
-    fn push_pop_ss(){
-            let mut cpu = Cpu::init();
-            cpu.mem.seek_to(cpu.code_addr(0) as u64);
-            cpu.regs.set_cs(0);
-            cpu.regs.set_ds(0);
-            cpu.regs.set_ss(4096);
-            cpu.regs.set_es(32);
-            cpu.regs.sp = 64;
-            cpu.regs.ss = 128;
-            cpu.execute(&Instruction {
-                opcode: Opcode::PushSs,
-                dest: Operand::Reg8(0),
-                src: Operand::Reg8(0),
-            });
-            assert_eq!(cpu.regs.sp, 62);
-            assert_eq!(cpu.read_mem_u16(cpu.stack_addr(cpu.regs.sp)), 128);
-            cpu.write_mem_u16(cpu.stack_addr(cpu.regs.sp), 64);
-            let sp = cpu.regs.sp;
-            cpu.execute(&Instruction {
-                opcode: Opcode::PopSs,
-                dest: Operand::Reg8(0),
-                src: Operand::Reg8(0),
-            });
-            assert_eq!(cpu.regs.ss, 64);
-            assert_eq!(cpu.regs.sp - sp, 2);
+    fn push_pop_ss() {
+        let mut cpu = Cpu::init();
+        cpu.mem.seek_to(cpu.code_addr(0) as u64);
+        cpu.regs.set_cs(0);
+        cpu.regs.set_ds(0);
+        cpu.regs.set_ss(4096);
+        cpu.regs.set_es(32);
+        cpu.regs.sp = 64;
+        cpu.regs.ss = 128;
+        cpu.execute(&Instruction {
+            opcode: Opcode::PushSs,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+        assert_eq!(cpu.regs.sp, 62);
+        assert_eq!(cpu.read_mem_u16(cpu.stack_addr(cpu.regs.sp)), 128);
+        cpu.write_mem_u16(cpu.stack_addr(cpu.regs.sp), 64);
+        let sp = cpu.regs.sp;
+        cpu.execute(&Instruction {
+            opcode: Opcode::PopSs,
+            dest: Operand::Reg8(0),
+            src: Operand::Reg8(0),
+        });
+        assert_eq!(cpu.regs.ss, 64);
+        assert_eq!(cpu.regs.sp - sp, 2);
     }
 
-    #[test] 
+    #[test]
     fn wa() {
-        let mut a:i32 = 90;
+        let mut a: i32 = 90;
         a = a.wrapping_add(1);
         assert!(a == 91);
     }
@@ -1372,6 +2503,5 @@ mod cpu_test {
         });
 
         assert_eq!(cpu.regs.ax, 1);
-
     }
 }

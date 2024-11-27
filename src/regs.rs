@@ -172,12 +172,14 @@ pub struct Registers {
     pub di: u16,
     pub sp: u16,
     pub bp: u16,
-    pub es: u32,
-    pub ds: u32,
-    pub cs: u32,
-    pub ss: u32,
+
+    pub es: u16,
+    pub ds: u16,
+    pub cs: u16,
+    pub ss: u16,
+
     pub flags: Flags,
-    pub ip: u16
+    pub ip: u16,
 }
 
 macro_rules! getsetreg {
@@ -254,42 +256,42 @@ impl Registers {
 
     #[inline(always)]
     pub fn get_ss(&self) -> u32 {
-        self.ss << 4
+        (self.ss as u32) << 4
     }
     #[inline(always)]
     pub fn set_ss(&mut self, val: u32) {
         assert!(val % 16 == 0);
-        self.ss = val >> 4;
+        self.ss = (val >> 4) as u16;
     }
 
     #[inline(always)]
     pub fn get_cs(&self) -> u32 {
-        self.cs << 4
+        (self.cs as u32) << 4
     }
     #[inline(always)]
     pub fn set_cs(&mut self, val: u32) {
         assert!(val % 16 == 0);
-        self.cs = val >> 4;
+        self.cs = (val >> 4) as u16;
     }
 
     #[inline(always)]
     pub fn get_ds(&self) -> u32 {
-        self.ds << 4
+        (self.ds as u32) << 4
     }
     #[inline(always)]
     pub fn set_ds(&mut self, val: u32) {
         assert!(val % 16 == 0);
-        self.ds = val >> 4;
+        self.ds = (val >> 4) as u16;
     }
 
     #[inline(always)]
     pub fn get_es(&self) -> u32 {
-        self.es << 4
+        (self.es as u32) << 4
     }
     #[inline(always)]
     pub fn set_es(&mut self, val: u32) {
         assert!(val % 16 == 0);
-        self.es = val >> 4;
+        self.es = (val >> 4) as u16;
     }
 }
 
