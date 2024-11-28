@@ -17,6 +17,10 @@ impl Byte1 {
         self.bp & 0b1 > 0
     }
 
+    pub fn set_word(&mut self) {
+        self.bp |= 1;
+    }
+
     pub fn reg_is_dest(&self) -> bool {
         self.bp & 0b10 > 0
     }
@@ -57,18 +61,32 @@ impl Byte2 {
 }
 
 pub struct Mem {
-    cursor: Cursor<Vec<u8>>,
+    pub cursor: Cursor<Vec<u8>>,
+    pub size: u64,
 }
 
 impl Mem {
+    fn zero(&mut self) {
+        let vec = self.cursor.get_mut();
+        vec.resize(1024 * 1024 - 1, 0);
+    }
+
     pub fn new() -> Self {
-        Self {
+        let mut s = Self {
             cursor: Cursor::new(Vec::with_capacity(1024 * 1024)),
-        }
+            size: 1024 * 1024,
+        };
+        s.zero();
+        s
+    }
+
+    pub fn size(&mut self) -> usize {
+        self.cursor.get_mut().len()
     }
 
     pub fn read_u8(&mut self) -> u8 {
         let mut buf = [0u8];
+        //println!("pos: {} {}", self.cursor.position(), self.size());
         self.cursor.read_exact(&mut buf).expect("failed to read u8");
         buf[0]
     }

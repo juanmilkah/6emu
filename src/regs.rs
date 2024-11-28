@@ -30,6 +30,14 @@ impl Flags {
         self.clear_pf();
     }
 
+    pub fn to_u16(&self) -> u16 {
+        self.bi
+    }
+
+    pub fn set_from_u16(&mut self, val: u16) {
+        self.bi = val
+    }
+
     #[inline(always)]
     pub fn clear_cf(&mut self) {
         self.bi &= 0b1111111111111110;
