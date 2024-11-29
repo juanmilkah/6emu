@@ -16,7 +16,7 @@ fn main() {
     //cpu.regs.set_ax(110);
 
     while let Some(i) = cpu.fetch() {
-        println!("[{}] {:?}", cpu.regs.ip, i);
+        println!("[{}] {:?}, {}", cpu.regs.ip, i, 1u8 << 7);
         cpu.execute(&i);
     }
 
