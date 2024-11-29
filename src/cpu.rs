@@ -138,6 +138,24 @@ pub enum Opcode {
     Shl,
     Shr,
     Sar,
+
+    Aad,
+    Aam,
+    Xlat,
+    Loop,
+    Loope,
+    Loopne,
+    Jcxz,
+    In,
+    Out,
+    Lock,
+    Rep,
+    Repne,
+    Hlt,
+    Cmc,
+    CallNear,
+    JmpNear,
+    JmpFar,
 }
 
 pub enum BitOp {
@@ -1989,6 +2007,150 @@ impl Cpu {
                     _ => unimplemented!("op 52"),
                 }
             }
+            53 => Some(match b1.to_u8() & 0b11 {
+                0 => {
+                    b2 = Byte2::new(self.mem.read_u8());
+                    if b2.to_u8() == 0b1010 {
+                        Instruction {
+                            opcode: Opcode::Aam,
+                            dest: Operand::Reg8(0),
+                            src: Operand::Reg8(0),
+                        }
+                    } else {
+                        panic!("AAM: wrong b2")
+                    }
+                }
+                1 => {
+                    b2 = Byte2::new(self.mem.read_u8());
+                    if b2.to_u8() == 0b1010 {
+                        Instruction {
+                            opcode: Opcode::Aad,
+                            dest: Operand::Reg8(0),
+                            src: Operand::Reg8(0),
+                        }
+                    } else {
+                        panic!("AAD: wrong b2")
+                    }
+                }
+                3 => Instruction {
+                    opcode: Opcode::Xlat,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg8(0),
+                },
+                _ => panic!("53"),
+            }),
+            56 => Some(match b1.to_u8() & 0b11 {
+                0 => Instruction {
+                    opcode: Opcode::Loopne,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                },
+
+                1 => Instruction {
+                    opcode: Opcode::Loope,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                },
+                2 => Instruction {
+                    opcode: Opcode::Loop,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Reg8(0),
+                },
+                3 => Instruction {
+                    opcode: Opcode::Jcxz,
+                    dest: Operand::Imm8(self.mem.read_u8()),
+                    src: Operand::Imm8(0),
+                },
+                _ => unreachable!(),
+            }),
+            57 => Some(match b1.to_u8() & 0b11 {
+                0 => Instruction {
+                    opcode: Opcode::In,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                },
+                1 => Instruction {
+                    opcode: Opcode::In,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                },
+                2 => Instruction {
+                    opcode: Opcode::Out,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                },
+                3 => Instruction {
+                    opcode: Opcode::Out,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                },
+                _ => unreachable!(),
+            }),
+            58 => Some(match b1.to_u8() & 0b11 {
+                0 => Instruction {
+                    opcode: Opcode::CallNear,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                },
+
+                1 => Instruction {
+                    opcode: Opcode::JmpNear,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                },
+                2 => Instruction {
+                    opcode: Opcode::JmpFar,
+                    dest: Operand::Imm16(self.mem.read_u16()),
+                    src: Operand::Imm16(self.mem.read_u16()),
+                },
+                3 => Instruction {
+                    opcode: Opcode::JmpNear,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Imm8(self.mem.read_u8()),
+                },
+                _ => unreachable!(),
+            }),
+            59 => Some(match b1.to_u8() & 0b11 {
+                0 => Instruction {
+                    opcode: Opcode::In,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg16(2),
+                },
+                1 => Instruction {
+                    opcode: Opcode::In,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg16(2),
+                },
+                2 => Instruction {
+                    opcode: Opcode::Out,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg16(2),
+                },
+                3 => Instruction {
+                    opcode: Opcode::Out,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg16(2),
+                },
+                _ => unreachable!(),
+            }),
+            60 => Some(match b1.to_u8() & 0b11 {
+                0 => Instruction {
+                    opcode: Opcode::Lock,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg16(2),
+                },
+                2 => Instruction {
+                    opcode: Opcode::Repne,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg16(2),
+                },
+                3 => Instruction {
+                    opcode: Opcode::Rep,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg16(2),
+                },
+                _ => unreachable!(),
+            }),
             _ => unimplemented!("Opcode: {}", b1.opcode()),
         };
         self.regs.ip = self.regs.ip.wrapping_add((self.mem.pos() - old_pos) as u16);
@@ -2459,6 +2621,15 @@ impl Cpu {
 
     fn adjust_ip_short(&mut self, val: u8) {
         let v = val as i8;
+        if v >= 0 {
+            self.regs.ip = self.regs.ip.wrapping_add(v.abs() as u16);
+        } else {
+            self.regs.ip = self.regs.ip.wrapping_sub(v.abs() as u16);
+        }
+    }
+
+    fn adjust_ip_long(&mut self, val: u16) {
+        let v = val as i16;
         if v >= 0 {
             self.regs.ip = self.regs.ip.wrapping_add(v.abs() as u16);
         } else {
@@ -2994,7 +3165,7 @@ impl Cpu {
         self.regs.flags.clear_of();
         match inst.dest {
             Operand::Reg16(id) => {
-                let val = self.rot16(dest, times,left);
+                let val = self.rot16(dest, times, left);
                 self.set_reg(id, true, val);
             }
             Operand::Mem16(pos, _) => {
@@ -3087,7 +3258,7 @@ impl Cpu {
         let dest = self.operand_value(inst.dest);
         match inst.dest {
             Operand::Reg16(id) => {
-                let val = self.rotcf16(dest, times,left);
+                let val = self.rotcf16(dest, times, left);
                 self.set_reg(id, true, val);
             }
             Operand::Mem16(pos, _) => {
@@ -3103,6 +3274,320 @@ impl Cpu {
                 self.write_mem_u8(pos, val);
             }
             _ => unreachable!(),
+        }
+    }
+
+    fn sh8(&mut self, val: u8, left: bool) -> u8 {
+        self.regs.flags.clear_cf();
+        self.regs.flags.clear_of();
+
+        let res = if left {
+            if (val & 128) > 0 {
+                self.regs.flags.set_cf();
+            }
+            val.wrapping_shl(1)
+        } else {
+            if (val & 1) > 0 {
+                self.regs.flags.set_cf();
+            }
+            val.wrapping_shr(1)
+        };
+        if (val & 128) != (res & 128) {
+            self.regs.flags.set_of();
+        }
+        res
+    }
+
+    fn sh16(&mut self, val: u16, left: bool) -> u16 {
+        self.regs.flags.clear_cf();
+        self.regs.flags.clear_of();
+
+        let res = if left {
+            if (val & 0x8000) > 0 {
+                self.regs.flags.set_cf();
+            }
+            val.wrapping_shl(1)
+        } else {
+            if (val & 1) > 0 {
+                self.regs.flags.set_cf();
+            }
+            val.wrapping_shr(1)
+        };
+        if (val & 0x8000) != (res & 0x8000) {
+            self.regs.flags.set_of();
+        }
+        res
+    }
+
+    fn shift(&mut self, inst: &Instruction, left: bool) {
+        let times = self.operand_value(inst.src);
+        let dest = self.operand_value(inst.dest);
+        for i in 0..times {
+            match inst.dest {
+                Operand::Reg16(id) => {
+                    let val = self.sh16(dest, left);
+                    self.set_reg(id, true, val);
+                }
+                Operand::Mem16(pos, _) => {
+                    let val = self.sh16(dest, left);
+                    self.write_mem_u16(pos, val);
+                }
+                Operand::Reg8(id) => {
+                    let val = self.sh8(dest as u8, left);
+                    self.set_reg(id, false, val as u16);
+                }
+                Operand::Mem8(pos, _) => {
+                    let val = self.sh8(dest as u8, left);
+                    self.write_mem_u8(pos, val);
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    fn shal8(&mut self, val: u8) -> u8 {
+        self.regs.flags.clear_cf();
+        self.regs.flags.clear_of();
+
+        let mut res = {
+            if (val & 1) > 0 {
+                self.regs.flags.set_cf();
+            }
+            val.wrapping_shr(1)
+        };
+
+        res |= (val & 128);
+
+        if (val & 128) != (res & 128) {
+            self.regs.flags.set_of();
+        }
+        res
+    }
+
+    fn shal16(&mut self, val: u16) -> u16 {
+        self.regs.flags.clear_cf();
+        self.regs.flags.clear_of();
+
+        let mut res = {
+            if (val & 1) > 0 {
+                self.regs.flags.set_cf();
+            }
+            val.wrapping_shr(1)
+        };
+
+        res |= (val & 0x8000);
+
+        if (val & 0x8000) != (res & 0x8000) {
+            self.regs.flags.set_of();
+        }
+        res
+    }
+
+    fn shalr(&mut self, inst: &Instruction) {
+        let times = self.operand_value(inst.src);
+        let dest = self.operand_value(inst.dest);
+        for i in 0..times {
+            match inst.dest {
+                Operand::Reg16(id) => {
+                    let val = self.shal16(dest);
+                    self.set_reg(id, true, val);
+                }
+                Operand::Mem16(pos, _) => {
+                    let val = self.shal16(dest);
+                    self.write_mem_u16(pos, val);
+                }
+                Operand::Reg8(id) => {
+                    let val = self.shal8(dest as u8);
+                    self.set_reg(id, false, val as u16);
+                }
+                Operand::Mem8(pos, _) => {
+                    let val = self.shal8(dest as u8);
+                    self.write_mem_u8(pos, val);
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    fn aad(&mut self) {
+        let al = self
+            .regs
+            .get_ah()
+            .wrapping_mul(10)
+            .wrapping_add(self.regs.get_al());
+        if al == 0 {
+            self.regs.flags.set_zf();
+        }
+
+        if (al & 128) > 0 {
+            self.regs.flags.set_sf();
+        }
+
+        if Self::even_parity(al) {
+            self.regs.flags.set_pf();
+        }
+
+        self.regs.set_al(al);
+        self.regs.set_ah(0);
+    }
+
+    fn aam(&mut self) {
+        let ah = self.regs.get_al().wrapping_div(10);
+        let al = self.regs.get_al().wrapping_rem(10);
+
+        self.regs.set_al(al);
+        self.regs.set_ah(ah);
+
+        let ax = self.regs.ax;
+
+        if (ax & 0x8000) > 0 {
+            self.regs.flags.set_sf();
+        }
+
+        if ax == 0 {
+            self.regs.flags.set_zf();
+        }
+
+        if Self::even_parity(al) {
+            self.regs.flags.set_pf();
+        }
+    }
+
+    fn xlat(&mut self) {
+        let offt = self.regs.bx + self.regs.get_al() as u16;
+        let byte = self.read_mem_u8(self.data_addr(offt));
+        self.regs.set_al(byte);
+    }
+
+    fn loopp(&mut self, inst: &Instruction) {
+        self.regs.cx = self.regs.cx.wrapping_sub(1);
+        if self.regs.cx != 0 {
+            if let Operand::Imm8(i) = inst.dest {
+                self.adjust_ip_short(i);
+            } else {
+                unreachable!()
+            }
+        }
+    }
+
+    fn loope(&mut self, inst: &Instruction) {
+        self.regs.cx = self.regs.cx.wrapping_sub(1);
+        if self.regs.cx != 0 && self.regs.flags.zf() {
+            if let Operand::Imm8(i) = inst.dest {
+                self.adjust_ip_short(i);
+            } else {
+                unreachable!()
+            }
+        }
+    }
+
+    fn loopne(&mut self, inst: &Instruction) {
+        self.regs.cx = self.regs.cx.wrapping_sub(1);
+        if self.regs.cx != 0 && !self.regs.flags.zf() {
+            if let Operand::Imm8(i) = inst.dest {
+                self.adjust_ip_short(i);
+            } else {
+                unreachable!()
+            }
+        }
+    }
+
+    fn jcxz(&mut self, inst: &Instruction) {
+        if self.regs.cx == 0 {
+            if let Operand::Imm8(i) = inst.dest {
+                self.adjust_ip_short(i);
+            } else {
+                unreachable!()
+            }
+        }
+    }
+
+    fn jmp_near(&mut self, inst: &Instruction) {
+        match inst.src {
+            Operand::Imm16(imm) => {
+                self.adjust_ip_long(imm);
+            }
+            Operand::Imm8(imm) => {
+                self.adjust_ip_short(imm);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn call_near(&mut self, inst: &Instruction) {
+        match inst.src {
+            Operand::Imm16(imm) => {
+                self.push(self.regs.ip);
+                self.adjust_ip_long(imm);
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    fn jmp_far(&mut self, inst: &Instruction) {
+        match inst.src {
+            Operand::Imm16(imm) => match inst.dest {
+                Operand::Imm16(imm2) => {
+                    self.regs.ip = imm2;
+                    self.regs.cs = imm;
+                }
+                _ => unreachable!(),
+            },
+            _ => unreachable!(),
+        }
+    }
+
+    fn rep(&mut self) {
+        if let Some(instr) = self.fetch() {
+            match instr.opcode {
+                Opcode::Lodsb
+                | Opcode::Lodsw
+                | Opcode::Stosb
+                | Opcode::Stosw
+                | Opcode::Movsb
+                | Opcode::Movsw => {
+                    while self.regs.cx != 0 {
+                        println!("cx: [{}], [{}] {:?}", self.regs.cx, self.regs.ip, instr);
+                        self.execute(&instr);
+                        self.regs.cx = self.regs.cx.wrapping_sub(1);
+                    }
+                }
+                Opcode::Cmpsw | Opcode::Cmpsb | Opcode::Scasw | Opcode::Scasb => self.repe(&instr),
+                _ => {
+                    self.execute(&instr);
+                }
+            }
+        }
+    }
+
+    fn repe(&mut self, instr: &Instruction) {
+        while self.regs.cx != 0 {
+            println!("cx: [{}], [{}] {:?}", self.regs.cx, self.regs.ip, instr);
+            self.execute(instr);
+            self.regs.cx = self.regs.cx.wrapping_sub(1);
+            if !self.regs.flags.zf() {
+                break;
+            }
+        }
+    }
+
+    fn repne(&mut self) {
+        if let Some(instr) = self.fetch() {
+            match instr.opcode {
+                Opcode::Cmpsw | Opcode::Cmpsb | Opcode::Scasw | Opcode::Scasb => {
+                    while self.regs.cx != 0 {
+                        println!("cx: [{}], [{}] {:?}", self.regs.cx, self.regs.ip, instr);
+                        self.execute(&instr);
+                        self.regs.cx = self.regs.cx.wrapping_sub(1);
+                        if self.regs.flags.zf() {
+                            break;
+                        }
+                    }
+                }
+                _ => {
+                    self.execute(&instr);
+                }
+            }
         }
     }
 
@@ -3332,11 +3817,27 @@ impl Cpu {
             Opcode::Ror => self.rotate(&inst, false),
             Opcode::Rcl => self.rotate_cf(&inst, true),
             Opcode::Rcr => self.rotate_cf(&inst, false),
-            Opcode::Shl => todo!(),
-            Opcode::Shr => todo!(),
-            Opcode::Sar => todo!(),
+            Opcode::Shl => self.shift(&inst, true),
+            Opcode::Shr => self.shift(&inst, false),
+            Opcode::Sar => self.shalr(&inst),
+            Opcode::Aad => self.aad(),
+            Opcode::Aam => self.aam(),
+            Opcode::Xlat => self.xlat(),
+            Opcode::Loop => self.loopp(&inst),
+            Opcode::Loope => self.loope(&inst),
+            Opcode::Loopne => self.loopne(&inst),
+            Opcode::Jcxz => self.jcxz(&inst),
+            Opcode::In => todo!(),
+            Opcode::Out => todo!(),
+            Opcode::Lock => todo!(),
+            Opcode::Rep => self.rep(),
+            Opcode::Repne => self.repne(),
+            Opcode::Hlt => todo!(),
+            Opcode::Cmc => todo!(),
+            Opcode::CallNear => self.call_near(&inst),
+            Opcode::JmpNear => self.jmp_near(&inst),
+            Opcode::JmpFar => self.jmp_far(&inst),
         }
-
         self.seg_override = None;
     }
 
