@@ -22,8 +22,8 @@ impl Default for Flags {
 
 impl Flags {
     pub fn clear_arith(&mut self) {
-        self.clear_af();
         self.clear_cf();
+        self.clear_af();
         self.clear_sf();
         self.clear_zf();
         self.clear_of();

@@ -62,7 +62,6 @@ pub enum Opcode {
     DecBp,
     DecSi,
     DecDi,
-
     PushAx,
     PushCx,
     PushBx,
@@ -71,7 +70,6 @@ pub enum Opcode {
     PushBp,
     PushSi,
     PushDi,
-
     PopAx,
     PopCx,
     PopBx,
@@ -80,7 +78,6 @@ pub enum Opcode {
     PopBp,
     PopSi,
     PopDi,
-
     Jo,
     Jno,
     Jb,
@@ -97,14 +94,12 @@ pub enum Opcode {
     Jnl,
     Jle,
     Jnle,
-
     Test,
     Xchg,
     Mov,
     Lea,
     Pop,
     Push,
-
     Cbw,
     Cwd,
     CallFar,
@@ -113,7 +108,6 @@ pub enum Opcode {
     Popf,
     Lahf,
     Sahf,
-
     Movsb,
     Movsw,
     Cmpsb,
@@ -138,7 +132,6 @@ pub enum Opcode {
     Shl,
     Shr,
     Sar,
-
     Aad,
     Aam,
     Xlat,
@@ -156,6 +149,19 @@ pub enum Opcode {
     CallNear,
     JmpNear,
     JmpFar,
+    Not,
+    Neg,
+    Mul,
+    Imul,
+    Div,
+    Idiv,
+    Clc,
+    Stc,
+    Cli,
+    Sti,
+    Cld,
+    Std,
+    Inc
 }
 
 pub enum BitOp {
@@ -1615,17 +1621,17 @@ impl Cpu {
                     dest: Operand::Reg16(0),
                     src: Operand::Reg16(1),
                 },
-                _ => unreachable!(),
                 2 => Instruction {
-                    opcode: Opcode::Xchg,
-                    dest: Operand::Reg16(0),
-                    src: Operand::Reg16(2),
+                    opcode: Opcode::CallFar,
+                    dest: Operand::Imm16(self.mem.read_u16()),
+                    src: Operand::Imm16(self.mem.read_u16()),
                 },
                 3 => Instruction {
-                    opcode: Opcode::Xchg,
+                    opcode: Opcode::Wait,
                     dest: Operand::Reg16(0),
                     src: Operand::Reg16(3),
                 },
+                _ => unreachable!(),
             }),
             39 => Some(match b1.to_u8() & 0b11 {
                 0 => Instruction {
@@ -2151,6 +2157,207 @@ impl Cpu {
                 },
                 _ => unreachable!(),
             }),
+            61 => Some(match b1.to_u8() & 0b11 {
+                0 => Instruction {
+                    opcode: Opcode::Hlt,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg16(2),
+                },
+                1 => Instruction {
+                    opcode: Opcode::Cmc,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg16(2),
+                },
+                2 => {
+                    b2 = Byte2::new(self.mem.read_u8());
+                    match b2.reg() {
+                        0 => Instruction{
+                            opcode: Opcode::Test,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(self.mem.read_u8())
+                        },
+                        2 => Instruction{
+                            opcode: Opcode::Not,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        3 => Instruction{
+                            opcode: Opcode::Neg,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        4 => Instruction{
+                            opcode: Opcode::Mul,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        5 => Instruction{
+                            opcode: Opcode::Imul,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        6 => Instruction{
+                            opcode: Opcode::Div,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        7 => Instruction{
+                            opcode: Opcode::Idiv,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        _ => unreachable!()
+                    } 
+                },
+                3 => {
+                    b2 = Byte2::new(self.mem.read_u8());
+                    match b2.reg() {
+                        0 => Instruction{
+                            opcode: Opcode::Test,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm16(self.mem.read_u16())
+                        },
+                        2 => Instruction{
+                            opcode: Opcode::Not,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        3 => Instruction{
+                            opcode: Opcode::Neg,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        4 => Instruction{
+                            opcode: Opcode::Mul,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        5 => Instruction{
+                            opcode: Opcode::Imul,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        6 => Instruction{
+                            opcode: Opcode::Div,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        7 => Instruction{
+                            opcode: Opcode::Idiv,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        _ => unreachable!()
+                    } 
+                },
+                _ => unreachable!(),
+                3 => Instruction {
+                    opcode: Opcode::Rep,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg16(2),
+                },
+            }),
+            62 => Some(match b1.to_u8() & 0b11 {
+                0 => Instruction {
+                    opcode: Opcode::Clc,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg16(2),
+                },
+                1 => Instruction {
+                    opcode: Opcode::Stc,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg16(2),
+                },
+                2 => Instruction {
+                    opcode: Opcode::Cli,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg16(2),
+                },
+                3 => Instruction {
+                    opcode: Opcode::Sti,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg16(2),
+                },
+                _ => unreachable!(),
+            }),
+            63 => Some(match b1.to_u8() & 0b11 {
+                0 => Instruction {
+                    opcode: Opcode::Cld,
+                    dest: Operand::Reg8(0),
+                    src: Operand::Reg16(2),
+                },
+                1 => Instruction {
+                    opcode: Opcode::Std,
+                    dest: Operand::Reg16(0),
+                    src: Operand::Reg16(2),
+                },
+                2 => {
+                    b2 = Byte2::new(self.mem.read_u8());
+                    match b2.reg() {
+                        0 => Instruction{
+                            opcode: Opcode::Inc,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        1 => Instruction{
+                            opcode: Opcode::Inc,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        _ => unreachable!()
+                    } 
+                },
+                3 => {
+                    b2 = Byte2::new(self.mem.read_u8());
+                    match b2.reg() {
+                        0 => Instruction{
+                            opcode: Opcode::Inc,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        1 => Instruction{
+                            opcode: Opcode::Inc,
+                            dest: self.addr_mod(b1, b2),
+                            src: Operand::Imm8(0)
+                        },
+                        2 => {
+                            Instruction{
+                                opcode: Opcode::CallNear,
+                                dest: Operand::Imm8(0),
+                                src: self.addr_mod(b1, b2),
+                            }
+                        },
+                        3 => {
+                            Instruction{
+                                opcode: Opcode::CallFar,
+                                src: Operand::Imm8(0),
+                                dest: self.addr_mod(b1, b2),
+                            }
+                        }
+                        4 => {
+                            Instruction{
+                                opcode: Opcode::JmpNear,
+                                dest: Operand::Imm8(0),
+                                src: self.addr_mod(b1, b2),
+                            }
+                        },
+                        5 => {
+                            Instruction{
+                                opcode: Opcode::JmpFar,
+                                dest: Operand::Imm8(0),
+                                src: self.addr_mod(b1, b2),
+                            }
+                        },
+                        6 =>                             Instruction{
+                            opcode: Opcode::Push,
+                            dest: Operand::Imm8(0),
+                            src: self.addr_mod(b1, b2),
+                        },
+                        _ => unreachable!()
+                    } 
+                },
+                _ => unreachable!(),
+            }),
             _ => unimplemented!("Opcode: {}", b1.opcode()),
         };
         self.regs.ip = self.regs.ip.wrapping_add((self.mem.pos() - old_pos) as u16);
@@ -2341,9 +2548,80 @@ impl Cpu {
         }
     }
 
+    fn dec(&mut self, d: Operand) {
+        let dest = self.operand_value(d);
+        let src = 1;
+
+        let mut result = dest.wrapping_sub(src);
+        self.regs.flags.clear_af();
+        self.regs.flags.clear_sf();
+        self.regs.flags.clear_zf();
+        self.regs.flags.clear_of();
+        self.regs.flags.clear_pf();
+
+        if (Self::aux_sub(dest, src)) {
+            self.regs.flags.set_af();
+        }
+
+        if Self::even_parity(result as u8) {
+            self.regs.flags.set_pf();
+        }
+
+        if result == 0 {
+            self.regs.flags.set_zf();
+        }
+
+        match d {
+            Operand::Mem16(p, _) => {
+                if (dest as i16).overflowing_sub(src as i16).1 {
+                    self.regs.flags.set_of();
+                }
+                if result & !0b01111111_11111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+
+                self.write_mem_u16(p, result)
+            }
+            Operand::Mem8(p, _) => {
+                if (dest as i8).overflowing_sub(src as i8).1 {
+                    self.regs.flags.set_of();
+                }
+
+                if result & !0b01111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+
+                    self.write_mem_u8(p, result as u8)
+            }
+            Operand::Reg8(r) => {
+                if (dest as i8).overflowing_sub(src as i8).1 {
+                    self.regs.flags.set_of();
+                }
+
+                if result & !0b01111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+
+                    self.set_reg(r, false, result)
+            }
+            Operand::Reg16(r) => {
+                if (dest as i16).overflowing_sub(src as i16).1 {
+                    self.regs.flags.set_of();
+                }
+
+                if result & !0b01111111_11111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+
+                    self.set_reg(r, true, result)
+            }
+            _ => unreachable!("Immediate destination"),
+        }
+    }
+
     fn add(&mut self, d: Operand, s: Operand, adc: bool) {
         let dest = self.operand_value(d);
-        let src = self.operand_value(s);
+        let src = 1;
 
         let mut result = dest.wrapping_add(src);
 
@@ -2418,6 +2696,75 @@ impl Cpu {
 
                 if (dest as u16).overflowing_add(src as u16).1 {
                     self.regs.flags.set_cf();
+                }
+
+                if result & !0b01111111_11111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+                self.set_reg(r, true, result)
+            }
+            _ => unreachable!("Immediate destination"),
+        }
+    }
+
+    fn inc(&mut self, d: Operand) {
+        let dest = self.operand_value(d);
+        let src = 1;
+
+        let mut result = dest.wrapping_add(src);
+
+        self.regs.flags.clear_af();
+        self.regs.flags.clear_sf();
+        self.regs.flags.clear_zf();
+        self.regs.flags.clear_of();
+        self.regs.flags.clear_pf();
+
+        if (Self::aux_add(dest, src)) {
+            self.regs.flags.set_af();
+        }
+
+        if Self::even_parity(result as u8) {
+            self.regs.flags.set_pf();
+        }
+
+        if result == 0 {
+            self.regs.flags.set_zf();
+        }
+
+        match d {
+            Operand::Mem16(p, _) => {
+                if (dest as i16).overflowing_add(src as i16).1 {
+                    self.regs.flags.set_of();
+                }
+
+                if result & !0b01111111_11111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+
+                self.write_mem_u16(p, result)
+            }
+            Operand::Mem8(p, _) => {
+                if (dest as i8).overflowing_add(src as i8).1 {
+                    self.regs.flags.set_of();
+                }
+                if result & !0b01111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+
+                self.write_mem_u8(p, result as u8)
+            }
+            Operand::Reg8(r) => {
+                if (dest as i8).overflowing_add(src as i8).1 {
+                    self.regs.flags.set_of();
+                }
+                if result & !0b01111111 > 0 {
+                    self.regs.flags.set_sf();
+                }
+                self.set_reg(r, false, result)
+            }
+            Operand::Reg16(r) => {
+                if (dest as i16).overflowing_add(src as i16).1 {
+                    self.regs.flags.set_of();
                 }
 
                 if result & !0b01111111_11111111 > 0 {
@@ -3509,6 +3856,9 @@ impl Cpu {
             }
             Operand::Imm8(imm) => {
                 self.adjust_ip_short(imm);
+            },
+            Operand::Reg16(r) => {
+                self.regs.ip = self.get_reg(r, true);
             }
             _ => unreachable!(),
         }
@@ -3519,9 +3869,42 @@ impl Cpu {
             Operand::Imm16(imm) => {
                 self.push(self.regs.ip);
                 self.adjust_ip_long(imm);
+            },
+            Operand::Mem16(pos, _) => {
+                self.push(self.regs.ip);
+                self.regs.ip = self.read_mem_u16(pos);
+            },
+            Operand::Reg16(r) => {
+                self.push(self.regs.ip);
+                self.regs.ip = self.get_reg(r, true);
             }
             _ => unreachable!(),
         }
+    }
+
+    fn call_far(&mut self, inst: &Instruction) {
+        self.push(self.regs.cs);
+        self.push(self.regs.ip);
+        //self.regs.ip = self.pop();
+        //self.regs.cs = self.pop();
+
+        match inst.dest {
+            Operand::Imm16(ip) => {
+                match inst.src {
+                    Operand::Imm16(seg) => {
+                        self.regs.ip = ip;
+                        self.regs.cs = seg
+                    }
+                    _=> unreachable!()
+                }
+            },
+            Operand::Mem16(pos,_ ) => {
+                self.regs.ip = self.read_mem_u16(pos);
+                self.regs.cs = self.read_mem_u16(pos.wrapping_add(2))
+            }
+            _ => unreachable!()
+        }
+
     }
 
     fn jmp_far(&mut self, inst: &Instruction) {
@@ -3533,6 +3916,10 @@ impl Cpu {
                 }
                 _ => unreachable!(),
             },
+            Operand::Mem16(pos,_ ) => {
+                self.regs.ip = self.read_mem_u16(pos);
+                self.regs.cs = self.read_mem_u16(pos.wrapping_add(2))
+            }
             _ => unreachable!(),
         }
     }
@@ -3591,6 +3978,195 @@ impl Cpu {
         }
     }
 
+    fn push_mem(&mut self, inst: &Instruction) {
+        match inst.src {
+            Operand::Mem16(pos, _) => {
+                let val = self.read_mem_u16(pos);
+                self.push(val);
+            },
+            _=> unreachable!()
+        }
+    }
+
+    fn mul(&mut self, inst: &Instruction) {
+        self.regs.flags.clear_of();
+        self.regs.flags.clear_cf();
+        match inst.dest {
+            Operand::Reg8(_)|
+            Operand::Mem8(_, _) => {
+                let op = match inst.dest {
+                    Operand::Reg8(r) => self.get_reg(r, false),
+                    Operand::Mem8(pos, _) => self.read_mem_u8(pos) as u16,
+                    _=>unreachable!()
+                };
+                self.regs.ax = (self.regs.get_al() as u16).wrapping_mul(op);
+                if self.regs.get_ah() != 0 {
+                    self.regs.flags.set_of();
+                    self.regs.flags.set_cf();
+                }
+            },
+            Operand::Mem16(_, _) |
+            Operand::Reg16(_) => {
+                let op = match inst.dest {
+                    Operand::Reg16(r) => self.get_reg(r, true),
+                    Operand::Mem16(pos, _) => self.read_mem_u16(pos),
+                    _=>unreachable!()
+                };
+                let res = (self.regs.ax as u32).wrapping_mul(op as u32);
+                self.regs.ax = res as u16;
+                self.regs.dx = (res >> 16) as u16;
+                if self.regs.dx != 0 {
+                    self.regs.flags.set_of();
+                    self.regs.flags.set_cf();
+                }
+            },
+            _ => unreachable!()
+        }
+    }
+
+    fn imul(&mut self, inst: &Instruction) {
+        self.regs.flags.clear_of();
+        self.regs.flags.clear_cf();
+        match inst.dest {
+            Operand::Reg8(_)|
+            Operand::Mem8(_, _) => {
+                let op = match inst.dest {
+                    Operand::Reg8(r) => self.get_reg(r, false) as i16,
+                    Operand::Mem8(pos, _) => self.read_mem_u8(pos) as i16,
+                    _=>unreachable!()
+                };
+                self.regs.ax = (self.regs.get_al() as i16).wrapping_mul(op) as u16;
+                if self.regs.get_ah() != 0xff {
+                    self.regs.flags.set_of();
+                    self.regs.flags.set_cf();
+                }
+            },
+            Operand::Mem16(_, _) |
+            Operand::Reg16(_) => {
+                let op = match inst.dest {
+                    Operand::Reg16(r) => self.get_reg(r, true) as i16,
+                    Operand::Mem16(pos, _) => self.read_mem_u16(pos) as i16,
+                    _=>unreachable!()
+                };
+                let res = (self.regs.ax as i32).wrapping_mul(op as i32);
+                self.regs.ax = res as u16;
+                self.regs.dx = (res >> 16) as u16;
+
+                if self.regs.dx != 0xffff {
+                    self.regs.flags.set_of();
+                    self.regs.flags.set_cf();
+                }
+            },
+            _ => unreachable!()
+        }
+    }
+
+    fn idiv(&mut self, inst: &Instruction) {
+        match inst.dest {
+            Operand::Reg8(_)|
+            Operand::Mem8(_, _) => {
+                let op = match inst.dest {
+                    Operand::Reg8(r) => self.get_reg(r, false) as i8,
+                    Operand::Mem8(pos, _) => self.read_mem_u8(pos) as i8,
+                    _=>unreachable!()
+                };
+                let res = (self.regs.get_al() as i8).wrapping_div(op);
+                let resmod = (self.regs.get_al() as i8).wrapping_rem(op);
+                self.regs.set_ah(resmod as u8);
+                self.regs.set_al(res as u8);
+            },
+            Operand::Mem16(_, _) |
+            Operand::Reg16(_) => {
+                let op = match inst.dest {
+                    Operand::Reg16(r) => self.get_reg(r, true) as i16,
+                    Operand::Mem16(pos, _) => self.read_mem_u16(pos) as i16,
+                    _=>unreachable!()
+                };
+                let res = (self.regs.ax as i16).wrapping_div(op);
+                let resmod = (self.regs.ax as i16).wrapping_rem(op);
+
+                self.regs.ax = res as u16;
+                self.regs.dx = resmod as u16;
+            },
+            _ => unreachable!()
+        }
+    }
+
+    fn div(&mut self, inst: &Instruction) {
+        match inst.dest {
+            Operand::Reg8(_)|
+            Operand::Mem8(_, _) => {
+                let op = match inst.dest {
+                    Operand::Reg8(r) => self.get_reg(r, false) as u8,
+                    Operand::Mem8(pos, _) => self.read_mem_u8(pos),
+                    _=>unreachable!()
+                };
+                let res = (self.regs.get_al()).wrapping_div(op);
+                let resmod = (self.regs.get_al()).wrapping_rem(op);
+                self.regs.set_ah(resmod);
+                self.regs.set_al(res);
+            },
+            Operand::Mem16(_, _) |
+            Operand::Reg16(_) => {
+                let op = match inst.dest {
+                    Operand::Reg16(r) => self.get_reg(r, true),
+                    Operand::Mem16(pos, _) => self.read_mem_u16(pos),
+                    _=>unreachable!()
+                };
+                let res = (self.regs.ax).wrapping_div(op);
+                let resmod = (self.regs.ax).wrapping_rem(op);
+
+                self.regs.ax = res;
+                self.regs.dx = resmod;
+            },
+            _ => unreachable!()
+        }
+    }
+
+    fn not(&mut self, inst: &Instruction) {
+        match inst.dest {
+            Operand::Reg8(r) =>{ 
+                let d = self.get_reg(r, false);
+                self.set_reg(r, false, !d);
+            },
+            Operand::Mem8(pos, _) => {
+                let d = self.read_mem_u8(pos); 
+                self.write_mem_u8(pos, !d);
+            },
+            Operand::Reg16(r) => {
+                let d = self.get_reg(r, true); 
+                self.set_reg(r, true, !d);
+            },
+            Operand::Mem16(pos, _) => {
+                let d = self.read_mem_u16(pos);
+                self.write_mem_u16(pos, !d);
+            },
+            _=>unreachable!()
+        };
+    }
+
+    fn neg(&mut self, inst: &Instruction) {
+        match inst.dest {
+            Operand::Reg8(r) =>{ 
+                let d = self.get_reg(r, false);
+                self.set_reg(r, false, d.wrapping_neg());
+            },
+            Operand::Mem8(pos, _) => {
+                let d = self.read_mem_u8(pos); 
+                self.write_mem_u8(pos, d.wrapping_neg());
+            },
+            Operand::Reg16(r) => {
+                let d = self.get_reg(r, true); 
+                self.set_reg(r, true, d.wrapping_neg());
+            },
+            Operand::Mem16(pos, _) => {
+                let d = self.read_mem_u16(pos);
+                self.write_mem_u16(pos, d.wrapping_neg());
+            },
+            _=>unreachable!()
+        };
+    }
+
     pub fn execute(&mut self, inst: &Instruction) {
         match inst.opcode {
             Opcode::Or => self.bit_op(inst.dest, inst.src, BitOp::Or, false),
@@ -3636,24 +4212,22 @@ impl Cpu {
             Opcode::Aaa => self.aaa(),
             Opcode::Das => self.das(),
             Opcode::Aas => self.aas(),
-
-            Opcode::IncAx => self.add(Operand::Reg16(0), Operand::Imm16(1), false),
-            Opcode::IncCx => self.add(Operand::Reg16(1), Operand::Imm16(1), false),
-            Opcode::IncBx => self.add(Operand::Reg16(2), Operand::Imm16(1), false),
-            Opcode::IncDx => self.add(Operand::Reg16(3), Operand::Imm16(1), false),
-            Opcode::IncSp => self.add(Operand::Reg16(4), Operand::Imm16(1), false),
-            Opcode::IncBp => self.add(Operand::Reg16(5), Operand::Imm16(1), false),
-            Opcode::IncSi => self.add(Operand::Reg16(6), Operand::Imm16(1), false),
-            Opcode::IncDi => self.add(Operand::Reg16(7), Operand::Imm16(1), false),
-
-            Opcode::DecAx => self.sub(Operand::Reg16(0), Operand::Imm16(1), false, false),
-            Opcode::DecCx => self.sub(Operand::Reg16(1), Operand::Imm16(1), false, false),
-            Opcode::DecBx => self.sub(Operand::Reg16(2), Operand::Imm16(1), false, false),
-            Opcode::DecDx => self.sub(Operand::Reg16(3), Operand::Imm16(1), false, false),
-            Opcode::DecSp => self.sub(Operand::Reg16(4), Operand::Imm16(1), false, false),
-            Opcode::DecBp => self.sub(Operand::Reg16(5), Operand::Imm16(1), false, false),
-            Opcode::DecSi => self.sub(Operand::Reg16(6), Operand::Imm16(1), false, false),
-            Opcode::DecDi => self.sub(Operand::Reg16(7), Operand::Imm16(1), false, false),
+            Opcode::IncAx => self.inc(Operand::Reg16(0)),
+            Opcode::IncCx => self.inc(Operand::Reg16(1)),
+            Opcode::IncBx => self.inc(Operand::Reg16(2)),
+            Opcode::IncDx => self.inc(Operand::Reg16(3)),
+            Opcode::IncSp => self.inc(Operand::Reg16(4)),
+            Opcode::IncBp => self.inc(Operand::Reg16(5)),
+            Opcode::IncSi => self.inc(Operand::Reg16(6)),
+            Opcode::IncDi => self.inc(Operand::Reg16(7)),
+            Opcode::DecAx => self.dec(Operand::Reg16(0)),
+            Opcode::DecCx => self.dec(Operand::Reg16(1)),
+            Opcode::DecBx => self.dec(Operand::Reg16(2)),
+            Opcode::DecDx => self.dec(Operand::Reg16(3)),
+            Opcode::DecSp => self.dec(Operand::Reg16(4)),
+            Opcode::DecBp => self.dec(Operand::Reg16(5)),
+            Opcode::DecSi => self.dec(Operand::Reg16(6)),
+            Opcode::DecDi => self.dec(Operand::Reg16(7)),
             Opcode::PushAx => self.push(self.regs.ax),
             Opcode::PushCx => self.push(self.regs.cx),
             Opcode::PushBx => self.push(self.regs.bx),
@@ -3787,10 +4361,10 @@ impl Cpu {
             Opcode::Mov => self.mov(&inst),
             Opcode::Lea => self.lea(&inst),
             Opcode::Pop => self.pop2(&inst),
-            Opcode::Push => todo!(),
+            Opcode::Push => self.push_mem(&inst),
             Opcode::Cbw => self.cbw(),
             Opcode::Cwd => self.cwd(),
-            Opcode::CallFar => todo!(),
+            Opcode::CallFar => self.call_far(&inst),
             Opcode::Wait => todo!(),
             Opcode::Pushf => self.pushf(),
             Opcode::Popf => self.popf(),
@@ -3837,6 +4411,19 @@ impl Cpu {
             Opcode::CallNear => self.call_near(&inst),
             Opcode::JmpNear => self.jmp_near(&inst),
             Opcode::JmpFar => self.jmp_far(&inst),
+            Opcode::Not => self.not(&inst),
+            Opcode::Neg => self.neg(&inst),
+            Opcode::Mul => self.mul(&inst),
+            Opcode::Imul => self.imul(&inst),
+            Opcode::Div => self.div(&inst),
+            Opcode::Idiv => self.idiv(&inst),
+            Opcode::Clc => self.regs.flags.clear_cf(),
+            Opcode::Stc => self.regs.flags.set_cf(),
+            Opcode::Cli => self.regs.flags.clear_if(),
+            Opcode::Sti => self.regs.flags.set_if(),
+            Opcode::Cld => self.regs.flags.clear_df(),
+            Opcode::Std => self.regs.flags.set_df(),
+            Opcode::Inc => self.inc(inst.dest),
         }
         self.seg_override = None;
     }
