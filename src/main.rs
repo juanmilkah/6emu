@@ -22,7 +22,8 @@ fn print_usement() {
         Row::from(&["-f", "binary file"])
     );
     
-    println!("{}", optable)
+    println!("{}", optable);
+    exit(1);
 
 }
 fn main() {
@@ -54,6 +55,10 @@ fn main() {
 
     while let Some(i) = cpu.fetch() {
         cpu.execute(&i);
+
+        if cpu.halt {
+            break;
+        }
     }
 
     let mut regtable = Table::new();

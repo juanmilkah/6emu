@@ -197,11 +197,13 @@ pub struct Cpu {
     pub mem: Mem,
     pub prog_size: u64,
     pub seg_override: Option<Segment>,
+    pub halt: bool
 }
 
 impl Cpu {
     pub fn init() -> Self {
         let mut cpu = Self {
+            halt: false,
             prog_size: 0,
             regs: Registers::default(),
             mem: Mem::new(),
@@ -4191,7 +4193,9 @@ impl Cpu {
         self.regs.flags.set_from_u16(f);
     }
 
-    fn hlt(&mut self, inst: &Instruction) {}
+    fn hlt(&mut self) {
+        self.halt = true;
+    }
 
     pub fn execute(&mut self, inst: &Instruction) {
         match inst.opcode {
@@ -4432,7 +4436,7 @@ impl Cpu {
             Opcode::Lock => todo!(),
             Opcode::Rep => self.rep(),
             Opcode::Repne => self.repne(),
-            Opcode::Hlt => todo!(),
+            Opcode::Hlt => self.hlt(),
             Opcode::Cmc => todo!(),
             Opcode::CallNear => self.call_near(&inst),
             Opcode::JmpNear => self.jmp_near(&inst),
