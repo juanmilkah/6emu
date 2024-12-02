@@ -1,5 +1,5 @@
 use std::{
-    fs::File, io::{BufReader, Cursor, Read, Seek, SeekFrom}, ops::{Add, Deref}, process::exit, u8::{self, MAX}
+    fs::File, io::{BufReader, Cursor, Read, Seek, SeekFrom, Stdin}, ops::{Add, Deref}, process::exit, u8::{self, MAX}
 };
 
 use crate::{
@@ -4483,6 +4483,22 @@ impl Cpu {
         while self.mem.pos() < 1024 {
             if let Some(v) = it.next() {
                 self.mem.write_u8(*v);
+            } else {
+                break;
+            }
+        }
+        self.prog_size = self.mem.pos();
+    }
+
+    pub fn load_code_stdin(&mut self) {
+        self.mem.seek_to(self.code_addr(0) as u64);
+        let mut it = std::io::stdin().bytes();
+        while self.mem.pos() < 1024 {
+            if let Some(rs) = it.next() {
+                match rs {
+                    Ok(v) => self.mem.write_u8(v),
+                    Err(_)=> panic!("error reading stdin"),
+                }
             } else {
                 break;
             }

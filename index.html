@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        *{
+            padding: 0;
+            box-sizing: border-box;
+            margin: 0;
+        }
+        textarea {
+            height: 100vh;
+            padding: 10px;
+            width: 400px;
+        }
+
+        body {
+            display: flex;
+            flex-direction: row;
+        }
+    </style>
+</head>
+
+<body>
+    <textarea name="editor" id="editor"></textarea>
+    
+    <div id="">
+        <button type="button" id="run">Run</button>
+        <button type="button" , id="close">Close</button>
+        <div id="tables"></div>
+    </div>
+
+    <script>
+        let run_button = document.getElementById("run");
+        let editor = document.getElementById("editor");
+        let close = document.getElementById("close");
+        let tables = document.getElementById("tables");
+
+        close.addEventListener("click", async (e) => {
+            await fetch("http://localhost:8000", {
+                method: "UPDATE",
+            });
+        });
+
+        run_button.addEventListener("click", async (event) => {
+            console.log(editor.value);
+
+            const res = await fetch("http://localhost:8000", {
+                method: "POST",
+                body: editor.value,
+                headers: {
+                    'Content-Type': 'text/plain'
+                }
+            });
+            let data = await res.json();
+            console.log(data)
+
+            tables.innerHTML = "";
+
+            let reg_table = `
+                <table border="1" id="registers">
+        <thead>
+            <tr>
+                <td>AX</td>
+                <td>BX</td>
+                <td>CX</td>
+                <td>DX</td>
+                <td>DI</td>
+                <td>SI</td>
+                <td>BP</td>
+                <td>SP</td>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <td>${data.registers.AX}</td>
+                <td>${data.registers.BX}</td>
+                <td>${data.registers.CX}</td>
+                <td>${data.registers.DX}</td>
+                <td>${data.registers.DI}</td>
+                <td>${data.registers.SI}</td>
+                <td>${data.registers.BP}</td>
+                <td>${data.registers.SP}</td>
+            </tr>
+        </tbody>
+    </table>
+            `;
+            tables.innerHTML += reg_table;
+
+            let flag_table = `
+                <table border="1" id="registers">
+        <thead>
+            <tr>
+                <td>Parity</td>
+                <td>Overflow</td>
+                <td>Sign</td>
+                <td>Carry</td>
+                <td>Zero</td>
+                <td>Aux</td>
+                <td>Direction</td>
+                <td>Interrupt</td>
+                <td>Trap</td>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr>
+                <td>${data.flags.Parity}</td>
+                <td>${data.flags.Overflow}</td>
+                <td>${data.flags.Sign}</td>
+                <td>${data.flags.Carry}</td>
+                <td>${data.flags.Zero}</td>
+                <td>${data.flags.Aux}</td>
+                <td>${data.flags.Direction}</td>
+                <td>${data.flags.Interrupt}</td>
+                <td>${data.flags.Trap}</td>
+            </tr>
+        </tbody>
+    </table>
+            `;
+
+            tables.innerHTML += flag_table
+        })
+
+
+    </script>
+</body>
+
+</html>
