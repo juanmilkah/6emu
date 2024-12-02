@@ -41,7 +41,7 @@
         let tables = document.getElementById("tables");
 
         close.addEventListener("click", async (e) => {
-            await fetch("http://localhost:8000", {
+            await fetch("http://localhost:8023", {
                 method: "UPDATE",
             });
         });
@@ -49,7 +49,7 @@
         run_button.addEventListener("click", async (event) => {
             console.log(editor.value);
 
-            const res = await fetch("http://localhost:8000", {
+            const res = await fetch("http://localhost:8023", {
                 method: "POST",
                 body: editor.value,
                 headers: {
@@ -60,6 +60,11 @@
             console.log(data)
 
             tables.innerHTML = "";
+
+            if(data.error) {
+                tables.innerHTML += data.error;
+                return
+            }
 
             let reg_table = `
                 <table border="1" id="registers">

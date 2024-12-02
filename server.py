@@ -63,7 +63,7 @@ def main():
     global server
     parser = argparse.ArgumentParser(usage="python3 server.py -f path/to/emu")
     parser.add_argument("-f", "--file", required=True, help="path to emu required")
-    parser.add_argument("-p", "--port", help="port", default="6666")
+    parser.add_argument("-p", "--port", help="port", default="8023")
     args = parser.parse_args()
     path_to_emu = args.file
     print(f"serving on port localhost:{args.port}")

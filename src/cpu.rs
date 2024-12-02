@@ -4395,7 +4395,6 @@ impl Cpu {
             Opcode::Cbw => self.cbw(),
             Opcode::Cwd => self.cwd(),
             Opcode::CallFar => self.call_far(&inst),
-            Opcode::Wait => todo!(),
             Opcode::Pushf => self.pushf(),
             Opcode::Popf => self.popf(),
             Opcode::Lahf => self.lahf(),
@@ -4431,13 +4430,18 @@ impl Cpu {
             Opcode::Loope => self.loope(&inst),
             Opcode::Loopne => self.loopne(&inst),
             Opcode::Jcxz => self.jcxz(&inst),
+            Opcode::Cmc => if self.regs.flags.cf() {
+                self.regs.flags.clear_cf();
+            } else {
+                self.regs.flags.set_cf();
+            },
+            Opcode::Wait => todo!(),
             Opcode::In => todo!(),
             Opcode::Out => todo!(),
             Opcode::Lock => todo!(),
             Opcode::Rep => self.rep(),
             Opcode::Repne => self.repne(),
             Opcode::Hlt => self.hlt(),
-            Opcode::Cmc => todo!(),
             Opcode::CallNear => self.call_near(&inst),
             Opcode::JmpNear => self.jmp_near(&inst),
             Opcode::JmpFar => self.jmp_far(&inst),
