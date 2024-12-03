@@ -1,36 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-
+    <title>Assembly Code Editor</title>
     <style>
-        *{
-            padding: 0;
+        * {
             box-sizing: border-box;
             margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
         }
-        textarea {
-            height: 100vh;
-            padding: 10px;
-            width: 400px;
-        }
-
         body {
             display: flex;
-            flex-direction: row;
+            height: 100vh;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+        #editor-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        textarea {
+            flex-grow: 1;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 2px solid #4a4a4a;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 300px;
+        }
+        #controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button#close {
+            background-color: #f44336;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        #tables {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        table thead {
+            background-color: #f1f1f1;
+        }
+        table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
         }
     </style>
 </head>
-
 <body>
-    <textarea name="editor" id="editor"></textarea>
-    
-    <div id="">
-        <button type="button" id="run">Run</button>
-        <button type="button" , id="close">Close</button>
+    <div id="editor-container">
+        <textarea 
+            name="editor" 
+            id="editor" 
+            placeholder="Enter x86 Assembly code here...
+Example:
+MOV AX, 5
+MOV BX, 10
+ADD AX, BX
+"
+        ></textarea>
+        
+        <div id="controls">
+            <button type="button" id="run">Run</button>
+            <button type="button" id="close">Close</button>
+        </div>
+        
         <div id="tables"></div>
     </div>
 
@@ -39,16 +102,15 @@
         let editor = document.getElementById("editor");
         let close = document.getElementById("close");
         let tables = document.getElementById("tables");
-
+        
         close.addEventListener("click", async (e) => {
             await fetch("http://localhost:8023", {
                 method: "UPDATE",
             });
         });
-
+        
         run_button.addEventListener("click", async (event) => {
             console.log(editor.value);
-
             const res = await fetch("http://localhost:8023", {
                 method: "POST",
                 body: editor.value,
@@ -58,82 +120,61 @@
             });
             let data = await res.json();
             console.log(data)
-
             tables.innerHTML = "";
-
             if(data.error) {
                 tables.innerHTML += data.error;
                 return
             }
-
             let reg_table = `
-                <table border="1" id="registers">
-        <thead>
-            <tr>
-                <td>AX</td>
-                <td>BX</td>
-                <td>CX</td>
-                <td>DX</td>
-                <td>DI</td>
-                <td>SI</td>
-                <td>BP</td>
-                <td>SP</td>
-            </tr>
-        </thead>
-
-        <tbody>
-            <tr>
-                <td>${data.registers.AX}</td>
-                <td>${data.registers.BX}</td>
-                <td>${data.registers.CX}</td>
-                <td>${data.registers.DX}</td>
-                <td>${data.registers.DI}</td>
-                <td>${data.registers.SI}</td>
-                <td>${data.registers.BP}</td>
-                <td>${data.registers.SP}</td>
-            </tr>
-        </tbody>
-    </table>
+                <table id="registers">
+                    <thead>
+                        <tr>
+                            <td>AX</td><td>BX</td><td>CX</td><td>DX</td>
+                            <td>DI</td><td>SI</td><td>BP</td><td>SP</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${data.registers.AX}</td>
+                            <td>${data.registers.BX}</td>
+                            <td>${data.registers.CX}</td>
+                            <td>${data.registers.DX}</td>
+                            <td>${data.registers.DI}</td>
+                            <td>${data.registers.SI}</td>
+                            <td>${data.registers.BP}</td>
+                            <td>${data.registers.SP}</td>
+                        </tr>
+                    </tbody>
+                </table>
             `;
             tables.innerHTML += reg_table;
-
+            
             let flag_table = `
-                <table border="1" id="registers">
-        <thead>
-            <tr>
-                <td>Parity</td>
-                <td>Overflow</td>
-                <td>Sign</td>
-                <td>Carry</td>
-                <td>Zero</td>
-                <td>Aux</td>
-                <td>Direction</td>
-                <td>Interrupt</td>
-                <td>Trap</td>
-            </tr>
-        </thead>
-
-        <tbody>
-            <tr>
-                <td>${data.flags.Parity}</td>
-                <td>${data.flags.Overflow}</td>
-                <td>${data.flags.Sign}</td>
-                <td>${data.flags.Carry}</td>
-                <td>${data.flags.Zero}</td>
-                <td>${data.flags.Aux}</td>
-                <td>${data.flags.Direction}</td>
-                <td>${data.flags.Interrupt}</td>
-                <td>${data.flags.Trap}</td>
-            </tr>
-        </tbody>
-    </table>
+                <table id="flags">
+                    <thead>
+                        <tr>
+                            <td>Parity</td><td>Overflow</td><td>Sign</td>
+                            <td>Carry</td><td>Zero</td><td>Aux</td>
+                            <td>Direction</td><td>Interrupt</td><td>Trap</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${data.flags.Parity}</td>
+                            <td>${data.flags.Overflow}</td>
+                            <td>${data.flags.Sign}</td>
+                            <td>${data.flags.Carry}</td>
+                            <td>${data.flags.Zero}</td>
+                            <td>${data.flags.Aux}</td>
+                            <td>${data.flags.Direction}</td>
+                            <td>${data.flags.Interrupt}</td>
+                            <td>${data.flags.Trap}</td>
+                        </tr>
+                    </tbody>
+                </table>
             `;
-
-            tables.innerHTML += flag_table
-        })
-
-
+            tables.innerHTML += flag_table;
+        });
     </script>
 </body>
-
 </html>
